@@ -175,6 +175,14 @@
     .navlink { position: relative; }
     .navlink::after { content:""; position:absolute; left:0; bottom:-4px; height:2px; width:0; background:#2f6fed; border-radius:2px; transition: width 0.25s ease; }
     .navlink:hover::after { width:100%; }
+
+    /* Help tooltip (hover / focus) */
+    .help{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:999px;background:#e2e8f0;color:#64748b;font-size:11px;font-weight:800;line-height:1;cursor:help;margin-left:5px;position:relative;vertical-align:middle;user-select:none;}
+    .help:hover,.help:focus{background:#2f6fed;color:#fff;outline:none;}
+    .help::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 9px);width:max-content;max-width:min(280px,72vw);white-space:normal;background:#191f28;color:#fff;font-size:12px;font-weight:600;line-height:1.55;letter-spacing:-0.01em;padding:11px 13px;border-radius:12px;opacity:0;visibility:hidden;transform:translateY(4px);transition:opacity .16s ease,transform .16s ease;z-index:70;box-shadow:0 12px 28px -8px rgba(0,0,0,.32);text-align:left;pointer-events:none;}
+    .help::before{content:"";position:absolute;left:9px;bottom:calc(100% + 3px);border:6px solid transparent;border-top-color:#191f28;opacity:0;visibility:hidden;transition:opacity .16s ease;z-index:70;}
+    .help:hover::after,.help:focus::after{opacity:1;visibility:visible;transform:translateY(0);}
+    .help:hover::before,.help:focus::before{opacity:1;visibility:visible;}
   </style>
 </head>
 
@@ -324,7 +332,7 @@
 
     <footer style="max-width:1160px; margin:0 auto; padding:28px clamp(20px,5vw,72px); font-size:12.5px; line-height:21px; color:#8a94ad;">
       <p style="margin:0;">본 진단 결과 및 지도 데이터는 시뮬레이션용 참고 자료이며, 실제 분양 공고 및 개별 자격 판정에 따라 상이할 수 있습니다.</p>
-      <p style="margin:4px 0 0;">© 2026 청약핏 (Chongyak Fit)</p>
+      <p style="margin:4px 0 0;">© 2026 청약핏 (Cheongyak Fit)</p>
     </footer>
   </div>
 
@@ -344,7 +352,7 @@
         <div class="w-10 h-10 rounded-2xl bg-brand-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 hover:rotate-12 hover:scale-110">ㅊ</div>
         <div>
           <span class="font-black text-2xl tracking-tight text-slate-900 block leading-none">청약핏</span>
-          <span class="text-[11px] text-slate-400 font-bold tracking-wider">CHONGYAK FIT</span>
+          <span class="text-[11px] text-slate-400 font-bold tracking-wider">CHEONGYAK FIT</span>
         </div>
       </div>
 
@@ -412,13 +420,24 @@
             </div>
 
             <div id="accountYearsField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
-              <label for="accountYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">청약통장 가입기간</label>
+              <label for="accountYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">청약통장 가입기간 <span class="help" tabindex="0" data-tip="통장을 처음 만든 날부터 지금까지의 기간이에요. 민영주택 가점에서 가입기간 항목으로 최대 17점까지 반영됩니다.">?</span></label>
               <select id="accountYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="0.3">6개월 미만</option>
-                <option value="1">1년 이상 ~ 2년 미만</option>
-                <option value="3" selected>3년 이상 ~ 4년 미만</option>
-                <option value="5">5년 이상 ~ 6년 미만</option>
-                <option value="10">10년 이상 ~ 11년 미만</option>
+                <option value="0.7">6개월 ~ 1년 미만</option>
+                <option value="1">1년 ~ 2년 미만</option>
+                <option value="2">2년 ~ 3년 미만</option>
+                <option value="3" selected>3년 ~ 4년 미만</option>
+                <option value="4">4년 ~ 5년 미만</option>
+                <option value="5">5년 ~ 6년 미만</option>
+                <option value="6">6년 ~ 7년 미만</option>
+                <option value="7">7년 ~ 8년 미만</option>
+                <option value="8">8년 ~ 9년 미만</option>
+                <option value="9">9년 ~ 10년 미만</option>
+                <option value="10">10년 ~ 11년 미만</option>
+                <option value="11">11년 ~ 12년 미만</option>
+                <option value="12">12년 ~ 13년 미만</option>
+                <option value="13">13년 ~ 14년 미만</option>
+                <option value="14">14년 ~ 15년 미만</option>
                 <option value="15">15년 이상 (만점: 17점)</option>
               </select>
             </div>
@@ -433,7 +452,7 @@
             </div>
 
             <div id="spouseField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
-              <label for="spouseYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">배우자 통장 가입기간 (합산 가산)</label>
+              <label for="spouseYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">배우자 통장 가입기간 (합산 가산) <span class="help" tabindex="0" data-tip="배우자가 보유한 청약통장의 가입기간이에요. 2024년 개정으로 배우자 가입기간이 최대 3점까지 내 가점에 합산됩니다.">?</span></label>
               <select id="spouseYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="0">없음 / 6개월 미만</option>
                 <option value="1">1년 이상 ~ 2년 미만 (+1점)</option>
@@ -443,7 +462,7 @@
             </div>
 
             <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition md:col-span-2">
-              <label for="home" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">본인 및 세대원 주택 보유 여부</label>
+              <label for="home" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">본인 및 세대원 주택 보유 여부 <span class="help" tabindex="0" data-tip="청약의 &apos;무주택&apos;은 나 혼자가 아니라 주민등록등본상 같은 세대원 전원이 집이 없어야 인정돼요. · 무주택: 세대원 모두 집 없음 · 부모님 소유 자가 거주: 같은 등본에 부모님 명의 집이 있는 경우(부모님이 모두 만 60세 이상이면 예외적으로 무주택 인정 가능) · 유주택: 나 또는 세대원이 집 보유">?</span></label>
               <select id="home" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="no">무주택 (세대원 전원 주택 없음)</option>
                 <option value="parent_owned">부모님 소유 자가 거주</option>
@@ -462,19 +481,29 @@
             </div>
 
             <div id="homelessField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition md:col-span-2">
-              <label for="homelessYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">무주택 기간</label>
+              <label for="homelessYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">무주택 기간 <span class="help" tabindex="0" data-tip="&apos;세대 전원이 집이 없던 기간&apos; 기준이에요. 같은 등본에 부모님 소유 집이 있으면 원칙적으로 이 기간에 포함되지 않아요(부모님이 모두 만 60세 이상 등 예외 있음). 보통 만 30세부터, 결혼했다면 혼인신고일부터 계산합니다.">?</span></label>
               <select id="homelessYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
-                <option value="0">1년 미만 (또는 만 30세 미만 미혼)</option>
-                <option value="1">1년 이상 ~ 2년 미만</option>
-                <option value="3">3년 이상 ~ 4년 미만</option>
-                <option value="5">5년 이상 ~ 6년 미만</option>
-                <option value="10">10년 이상 ~ 11년 미만</option>
+                <option value="0">1년 미만</option>
+                <option value="1">1년 ~ 2년 미만</option>
+                <option value="2">2년 ~ 3년 미만</option>
+                <option value="3">3년 ~ 4년 미만</option>
+                <option value="4">4년 ~ 5년 미만</option>
+                <option value="5">5년 ~ 6년 미만</option>
+                <option value="6">6년 ~ 7년 미만</option>
+                <option value="7">7년 ~ 8년 미만</option>
+                <option value="8">8년 ~ 9년 미만</option>
+                <option value="9">9년 ~ 10년 미만</option>
+                <option value="10">10년 ~ 11년 미만</option>
+                <option value="11">11년 ~ 12년 미만</option>
+                <option value="12">12년 ~ 13년 미만</option>
+                <option value="13">13년 ~ 14년 미만</option>
+                <option value="14">14년 ~ 15년 미만</option>
                 <option value="15">15년 이상 (만점: 32점)</option>
               </select>
             </div>
 
             <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
-              <label for="householder" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">세대주 여부</label>
+              <label for="householder" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">세대주 여부 <span class="help" tabindex="0" data-tip="주민등록등본상 세대의 대표자예요. 공공분양 일부는 세대주에게만 1순위 자격이 주어지는 경우가 있어 중요합니다.">?</span></label>
               <select id="householder" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="yes">세대주</option>
                 <option value="no">세대원</option>
@@ -483,7 +512,7 @@
             </div>
 
             <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
-              <label for="income" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">월평균 소득 수준 (도시근로자 기준)</label>
+              <label for="income" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">월평균 소득 수준 (도시근로자 기준) <span class="help" tabindex="0" data-tip="가구원 전체의 월평균 소득을 도시근로자 가구원수별 월평균소득과 비교한 수준이에요. 공공분양·특별공급은 소득 기준을 넘으면 신청이 제한될 수 있습니다.">?</span></label>
               <select id="income" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="low">낮은 편 (100% 이하)</option>
                 <option value="mid" selected>보통 (100~140%)</option>
@@ -502,20 +531,22 @@
             </div>
 
             <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
-              <label for="dependents" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">부양가족 수 (본인 제외)</label>
+              <label for="dependents" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">부양가족 수 (본인 제외) <span class="help" tabindex="0" data-tip="주민등록등본상 나와 함께 살며 생계를 같이하는 가족 수예요(배우자·직계존비속 등, 본인 제외). 민영주택 가점에서 최대 35점으로 비중이 가장 큽니다.">?</span></label>
               <select id="dependents" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
                 <option value="0">0명 (기본 5점)</option>
                 <option value="1">1명 (10점)</option>
                 <option value="2">2명 (15점)</option>
                 <option value="3">3명 (20점)</option>
-                <option value="4">4명 이상 (25점~최대 35점)</option>
+                <option value="4">4명 (25점)</option>
+                <option value="5">5명 (30점)</option>
+                <option value="6">6명 이상 (35점 만점)</option>
               </select>
             </div>
 
           </div>
 
           <div class="flex gap-4">
-            <button class="h-16 px-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base rounded-2xl transition" type="button" onclick="openStep('home')">
+            <button class="h-16 px-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base rounded-2xl transition" type="button" onclick="showLanding()">
               이전
             </button>
             <button class="flex-1 h-16 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg rounded-2xl transition shadow-xl shadow-brand-500/20 flex items-center justify-center gap-2" type="button" onclick="openStep('target')">
@@ -832,7 +863,7 @@
               실제 지도에서 단지별 자금 비교하기 →
             </button>
             <button class="h-14 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-base rounded-2xl transition shadow-lg shadow-brand-500/20" type="button" onclick="saveProfileToCloud()">
-              ☁️ 내 진단 결과 클라우드 저장
+              💾 내 진단 결과 저장하기
             </button>
           </div>
         </div>
@@ -848,11 +879,11 @@
         <div class="bg-white rounded-[36px] p-8 sm:p-12 border border-slate-200/80 shadow-card">
           <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
             <div>
-              <span class="text-xs font-bold text-brand-600 uppercase tracking-wider block mb-1">FIRESTORE CLOUD SYNC</span>
+              <span class="text-xs font-bold text-brand-600 uppercase tracking-wider block mb-1">이 브라우저에 저장</span>
               <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">내 진단 조건 저장 및 관리</h2>
             </div>
             <button onclick="saveProfileToCloud()" class="px-6 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-lg shadow-brand-500/20 transition flex items-center gap-2">
-              <span>☁️ 현재 설정 저장하기</span>
+              <span>💾 현재 설정 저장하기</span>
             </button>
           </div>
 
@@ -873,7 +904,7 @@
           </div>
 
           <div id="cloudStatusBox" class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold flex items-center justify-between">
-            <span>상태: 인증 준비 완료</span>
+            <span>상태: 이 브라우저에 저장돼요</span>
             <span id="lastSavedTime" class="text-emerald-600">최근 저장 기록 없음</span>
           </div>
         </div>
@@ -995,89 +1026,56 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200/80 mt-16 py-12">
     <div class="max-w-6xl mx-auto px-6 sm:px-10 text-center text-xs sm:text-sm text-slate-400 leading-relaxed space-y-2">
-      <p class="font-bold text-slate-600 mb-2 text-base">청약핏 (Chongyak Fit) - 토스 스타일 맞춤 청약 방향 진단</p>
+      <p class="font-bold text-slate-600 mb-2 text-base">청약핏 (Cheongyak Fit) - 토스 스타일 맞춤 청약 방향 진단</p>
       <p>본 진단 결과 및 실제 지도 데이터는 시뮬레이션용 참고 자료이며, 실제 분양 공고 및 개별 자격 판정에 따라 상이할 수 있습니다.</p>
-      <p class="pt-2">© 2026 CHONGYAK FIT. All rights reserved.</p>
+      <p class="pt-2">© 2026 CHEONGYAK FIT. All rights reserved.</p>
     </div>
   </footer>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <script>
+    // Local save — works in a standalone file with no external backend.
+    (function () {
+      const STORAGE_KEY = 'cheongyakfit_profile';
+      const FIELD_IDS = ['account','accountYears','marital','spouseYears','home','parentOwnerAge','homelessYears','householder','income','children','dependents','region','period','monthly'];
+      let memoryFallback = null;
 
-    // Firestore Integration Setup
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'chongyak-fit-app';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-      apiKey: "demo-key",
-      authDomain: "demo.firebaseapp.com",
-      projectId: "demo-app",
-      storageBucket: "demo.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:demo"
-    };
-
-    let app, auth, db;
-    let currentUser = null;
-
-    try {
-      app = initializeApp(firebaseConfig);
-      auth = getAuth(app);
-      db = getFirestore(app);
-
-      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-        await signInWithCustomToken(auth, __initial_auth_token);
-      } else {
-        await signInAnonymously(auth);
+      function read() {
+        try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : memoryFallback; }
+        catch (e) { return memoryFallback; }
       }
-      currentUser = auth.currentUser;
-      const statusBox = document.getElementById('cloudStatusBox');
-      if (statusBox) {
-        statusBox.innerHTML = `<span>상태: 클라우드 연동됨 (UID: ${currentUser.uid.slice(0, 8)}...)</span>`;
+      function write(obj) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(obj)); }
+        catch (e) { memoryFallback = obj; }
       }
-      const syncBadge = document.getElementById('syncBadge');
-      if (syncBadge) {
-        syncBadge.classList.replace('bg-slate-300', 'bg-emerald-500');
+      function markSaved(savedAt) {
+        const lastSaved = document.getElementById('lastSavedTime');
+        if (lastSaved) lastSaved.textContent = savedAt ? ('최근 저장: ' + savedAt) : '최근 저장 기록 없음';
+        const badge = document.getElementById('syncBadge');
+        if (badge) badge.classList.replace('bg-slate-300', 'bg-emerald-500');
       }
-    } catch (e) {
-      console.warn("Firestore running in single-session fallback mode.");
-    }
 
-    // Save profile to Cloud
-    window.saveProfileToCloud = async function() {
-      if (!currentUser || !db) {
-        showToast("⚠️ 클라우드 연결 준비 중입니다.");
-        return;
-      }
-      const data = {
-        account: account.value,
-        accountYears: accountYears.value,
-        marital: marital.value,
-        spouseYears: spouseYears.value,
-        home: home.value,
-        parentOwnerAge: parentOwnerAge.value,
-        homelessYears: homelessYears.value,
-        householder: householder.value,
-        income: income.value,
-        children: children.value,
-        dependents: dependents.value,
-        region: region.value,
-        period: period.value,
-        monthly: monthly.value,
-        savedAt: new Date().toLocaleString("ko-KR")
+      // Called by the 저장 buttons.
+      window.saveProfileToCloud = function () {
+        const data = { savedAt: new Date().toLocaleString('ko-KR') };
+        FIELD_IDS.forEach(function (id) { const el = document.getElementById(id); if (el) data[id] = el.value; });
+        write(data);
+        markSaved(data.savedAt);
+        if (typeof showToast === 'function') showToast('\uD83D\uDCBE 내 진단 정보가 저장되었습니다!');
       };
 
-      try {
-        const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profiles', 'saved_profile');
-        await setDoc(userDocRef, data);
-        showToast("☁️ 내 진단 정보가 안전하게 클라우드에 저장되었습니다!");
-        const lastSaved = document.getElementById('lastSavedTime');
-        if (lastSaved) lastSaved.textContent = `최근 저장: ${data.savedAt}`;
-      } catch (err) {
-        showToast("❌ 저장 중 오류가 발생했습니다.");
-      }
-    };
+      // Restore saved answers on next visit.
+      window.addEventListener('load', function () {
+        const data = read();
+        if (!data) return;
+        FIELD_IDS.forEach(function (id) {
+          const el = document.getElementById(id);
+          if (el && data[id] !== undefined && data[id] !== null) el.value = data[id];
+        });
+        markSaved(data.savedAt);
+        if (typeof updateResult === 'function') updateResult();
+      });
+    })();
   </script>
 
   <script>
