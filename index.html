@@ -370,7 +370,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
       
       <!-- Brand Logo -->
-      <div class="flex items-center gap-3 cursor-pointer shrink-0" onclick="openStep('profile')">
+      <div class="flex items-center gap-3 cursor-pointer shrink-0" onclick="showLanding()" title="홈으로">
         <div class="w-10 h-10 rounded-2xl bg-brand-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 hover:rotate-12 hover:scale-110">ㅊ</div>
         <div>
           <span class="font-black text-2xl tracking-tight text-slate-900 block leading-none">청약핏</span>
@@ -398,8 +398,8 @@
 
       <!-- Primary Action Button -->
       <div class="hidden md:flex items-center gap-3 shrink-0">
-        <button onclick="openStep('profile')" class="h-11 px-5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs sm:text-sm rounded-xl transition shadow-lg shadow-brand-500/20">
-          ⚡ 청약핏 체험하기
+        <button onclick="showLanding()" class="h-11 px-5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs sm:text-sm rounded-xl transition flex items-center gap-1.5">
+          <span>←</span> 홈으로
         </button>
       </div>
 
@@ -1289,6 +1289,12 @@
       document.getElementById("landingView").style.display = "none";
       document.getElementById("appShell").style.display = "";
       window.scrollTo({ top: 0 });
+    }
+
+    function showLanding() {
+      document.getElementById("appShell").style.display = "none";
+      document.getElementById("landingView").style.display = "";
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function openStep(id) {
