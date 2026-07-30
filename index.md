@@ -1,0 +1,1780 @@
+
+<!doctype html>
+<html lang="ko" class="h-full bg-slate-50">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>청약핏 - 토스 스타일 맞춤 청약 방향 진단 & 실시간 단지지도</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet CSS & JS (Free Real Interactive Map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f4f8ff',
+              100: '#d9e9ff',
+              200: '#bcdaff',
+              500: '#3182f6',
+              600: '#1b64da',
+              700: '#124db3',
+              800: '#103e91',
+              900: '#191f28',
+            },
+            ink: '#191f28',
+            subtle: '#6b7684',
+            bglight: '#f7f8fa',
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"Pretendard"', '"Segoe UI"', '"Apple SD Gothic Neo"', '"Noto Sans KR"', 'sans-serif'],
+          },
+          boxShadow: {
+            'subtle': '0 2px 12px 0 rgba(0, 0, 0, 0.04)',
+            'card': '0 8px 24px -4px rgba(25, 31, 40, 0.06)',
+            'float': '0 16px 32px -8px rgba(49, 130, 246, 0.18)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --blue: #3182f6;
+      --blue-dark: #1b64da;
+      --ink: #191f28;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      font-feature-settings: "tnum";
+      word-break: keep-all;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .step-view { display: none; }
+    .step-view.active { display: block; animation: fadeInUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    button, .chip, a { transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease, background-color 0.18s ease; }
+    button:hover, .chip:hover { transform: translateY(-2px) scale(1.03); }
+    button:active, .chip:active { transform: translateY(0) scale(0.97); }
+
+    .rounded-2xl, .rounded-\[36px\], .rounded-\[32px\] { transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease; }
+
+    #toast { animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    .num-display {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+    }
+
+    .chip.active {
+      background-color: #3182f6 !important;
+      color: #ffffff !important;
+      border-color: #3182f6 !important;
+    }
+
+    /* Custom Leaflet Map Pin Overrides */
+    .leaflet-popup-content-wrapper {
+      border-radius: 20px;
+      padding: 6px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+    }
+    .custom-map-marker {
+      background: transparent;
+      border: none;
+    }
+
+    @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-14px); } }
+
+    /* ===== Landing page animations ===== */
+    @media (prefers-reduced-motion: no-preference) {
+
+      /* Drifting decorative shapes */
+      @keyframes drift {
+        0%   { transform: translate(0,0) rotate(0deg); }
+        33%  { transform: translate(18px,-22px) rotate(8deg); }
+        66%  { transform: translate(-14px,-10px) rotate(-6deg); }
+        100% { transform: translate(0,0) rotate(0deg); }
+      }
+
+      /* Large soft blobs behind the hero */
+      @keyframes blob {
+        0%,100% { transform: translate(0,0) scale(1); }
+        50%     { transform: translate(30px,-24px) scale(1.12); }
+      }
+
+      /* Entrance: fade + rise, used with staggered delays */
+      @keyframes heroRise {
+        from { opacity: 0; transform: translateY(28px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .anim-rise { opacity: 0; animation: heroRise 0.85s cubic-bezier(0.16,1,0.3,1) forwards; }
+      .d1 { animation-delay: 0.05s; }
+      .d2 { animation-delay: 0.18s; }
+      .d3 { animation-delay: 0.32s; }
+      .d4 { animation-delay: 0.46s; }
+      .d5 { animation-delay: 0.60s; }
+
+      /* Animated gradient sweep on the headline highlight */
+      @keyframes shimmer { to { background-position: 200% center; } }
+      .grad-shimmer {
+        background: linear-gradient(90deg,#2f6fed 0%,#7cd3ff 25%,#2f6fed 50%,#7cd3ff 75%,#2f6fed 100%);
+        background-size: 200% auto;
+        -webkit-background-clip: text; background-clip: text;
+        -webkit-text-fill-color: transparent; color: transparent;
+        animation: shimmer 4.5s linear infinite;
+      }
+
+      /* Pulsing glow on primary CTAs */
+      @keyframes ctaGlow {
+        0%,100% { box-shadow: 0 12px 24px -8px rgba(47,111,237,0.5); }
+        50%     { box-shadow: 0 16px 34px -6px rgba(47,111,237,0.75); }
+      }
+      .cta-glow { animation: ctaGlow 2.6s ease-in-out infinite; }
+
+      /* Bouncing scroll cue */
+      @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(9px); } }
+      .scroll-cue { animation: bob 1.8s ease-in-out infinite; }
+
+      /* Scroll-triggered reveal (toggled by IntersectionObserver) */
+      .reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1); }
+      .reveal.in { opacity: 1; transform: none; }
+    }
+
+    /* Card hover lift (works even with reduced motion off) */
+    .lift { transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease; }
+    .lift:hover { transform: translateY(-8px); box-shadow: 0 22px 44px -18px rgba(28,42,74,0.28); }
+
+    /* Animated underline for nav links */
+    .navlink { position: relative; }
+    .navlink::after { content:""; position:absolute; left:0; bottom:-4px; height:2px; width:0; background:#2f6fed; border-radius:2px; transition: width 0.25s ease; }
+    .navlink:hover::after { width:100%; }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col bg-slate-50/70 text-slate-900 antialiased">
+
+  <div id="landingView" style="background:linear-gradient(180deg,#eef4ff 0%,#fbfcff 40%); color:#1c2a4a; font-family:'Poppins',sans-serif; min-height:100vh; overflow:hidden; position:relative;">
+    <!-- Soft drifting blobs behind the hero -->
+    <div style="position:absolute; top:-80px; left:-60px; width:340px; height:340px; border-radius:50%; background:radial-gradient(circle,#bcd7ff 0%,rgba(188,215,255,0) 70%); filter:blur(6px); animation:blob 14s ease-in-out infinite; pointer-events:none;"></div>
+    <div style="position:absolute; top:120px; right:-90px; width:380px; height:380px; border-radius:50%; background:radial-gradient(circle,#cdeffb 0%,rgba(205,239,251,0) 70%); filter:blur(6px); animation:blob 18s ease-in-out infinite 2s; pointer-events:none;"></div>
+
+    <!-- Floating shapes -->
+    <div style="position:absolute; top:90px; left:6%; width:70px; height:70px; border-radius:50%; background:#ffd166; opacity:0.55; animation:drift 9s ease-in-out infinite;"></div>
+    <div style="position:absolute; top:260px; right:8%; width:46px; height:46px; border-radius:16px; background:#7cd3ff; opacity:0.6; animation:drift 11s ease-in-out infinite 1s;"></div>
+    <div style="position:absolute; bottom:120px; left:4%; width:54px; height:54px; border-radius:50%; background:#a3e6c4; opacity:0.6; animation:drift 12s ease-in-out infinite 0.5s;"></div>
+    <div style="position:absolute; top:420px; left:12%; width:22px; height:22px; border-radius:8px; background:#f7a8c4; opacity:0.55; animation:drift 10s ease-in-out infinite 2s;"></div>
+    <div style="position:absolute; top:180px; left:44%; width:16px; height:16px; border-radius:50%; background:#2f6fed; opacity:0.3; animation:float 6s ease-in-out infinite 0.8s;"></div>
+    <div style="position:absolute; bottom:220px; right:14%; width:30px; height:30px; border-radius:10px; background:#ffd166; opacity:0.45; animation:drift 13s ease-in-out infinite 1.5s;"></div>
+
+    <nav class="anim-rise" style="position:relative; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px clamp(20px,5vw,72px);">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:26px;">🏠</span>
+        <span style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:22px; color:#2f6fed;">청약핏</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:20px; font-weight:600; font-size:14px;">
+        <button onclick="showApp()" style="font-family:inherit; font-weight:700; font-size:14px; background:#2f6fed; color:#fff; border:none; border-radius:999px; padding:11px 22px; cursor:pointer; box-shadow:0 8px 20px -6px rgba(47,111,237,0.55);">체험하기 ✨</button>
+      </div>
+    </nav>
+
+    <div style="position:relative; max-width:1160px; margin:0 auto; padding:0 clamp(20px,5vw,72px);">
+
+      <section style="padding:88px 0 60px; text-align:center;">
+        <span class="anim-rise d1" style="display:inline-block; background:#fff; color:#2f6fed; font-weight:700; font-size:13px; padding:8px 18px; border-radius:999px; box-shadow:0 4px 14px -4px rgba(47,111,237,0.25); margin-bottom:24px;">2026 청약 개정 반영 🔵</span>
+        <h1 class="anim-rise d2" style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(36px,6.4vw,68px); line-height:1.14; letter-spacing:-0.01em; margin:0; color:#1c2a4a;">
+          복잡한 청약,<br>
+          <span class="grad-shimmer">3분이면 방향이 보여요</span> 🎯
+        </h1>
+        <p class="anim-rise d3" style="font-size:17px; line-height:29px; max-width:56ch; margin:26px auto 0; color:#4a5a7a;">
+          통장 가입기간, 무주택 여부, 부양가족, 목표 지역까지 —<br>공공분양과 민영주택 중 나에게 맞는 트랙과 월 납입 전략을 진단해드려요.
+        </p>
+        <div class="anim-rise d4" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:32px;">
+          <button onclick="showApp()" class="cta-glow" style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; background:#2f6fed; color:#fff; border:none; border-radius:999px; padding:16px 30px; cursor:pointer;">지금 체험하기 🚀</button>
+        </div>
+
+        <!-- Animated stats strip (counts up on load) -->
+        <div class="anim-rise d5" style="display:flex; flex-wrap:wrap; justify-content:center; gap:14px 40px; margin:48px auto 0; max-width:640px;">
+          <div style="min-width:120px;">
+            <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:34px; color:#2f6fed;"><span class="count" data-to="84">0</span><span style="font-size:18px;">점</span></div>
+            <div style="font-size:13px; color:#6a789a; font-weight:600; margin-top:2px;">가점 항목별 분해</div>
+          </div>
+          <div style="min-width:120px;">
+            <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:34px; color:#2f6fed;"><span class="count" data-to="3">0</span><span style="font-size:18px;">분</span></div>
+            <div style="font-size:13px; color:#6a789a; font-weight:600; margin-top:2px;">진단 소요 시간</div>
+          </div>
+          <div style="min-width:120px;">
+            <div style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:34px; color:#2f6fed;"><span class="count" data-to="22">0</span><span style="font-size:18px;">명</span></div>
+            <div style="font-size:13px; color:#6a789a; font-weight:600; margin-top:2px;">사용자 설문으로 검증</div>
+          </div>
+        </div>
+
+        <!-- Scroll cue -->
+        <div class="scroll-cue" style="margin:44px auto 0; width:26px; height:26px; color:#9db4e6;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:26px; height:26px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </section>
+
+      <section id="about" style="padding:56px 0 40px;">
+        <div class="reveal" style="max-width:820px; margin:0 auto; text-align:center;">
+          <p style="font-weight:700; color:#2f6fed; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 20px;">서비스 소개</p>
+
+          <!-- 한 줄 설명 -->
+          <h2 style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(24px,3.6vw,36px); line-height:1.3; color:#1c2a4a; margin:0;">
+            "통장은 있는데 어떻게 관리할지 모르는 사람"을 위한,<br>
+            <span style="color:#2f6fed;">3분 청약 방향 진단 서비스</span>
+          </h2>
+
+          <!-- 여러 줄 설명 -->
+          <div style="margin-top:26px; background:#fff; border-radius:28px; padding:34px clamp(24px,4vw,44px); box-shadow:0 12px 34px -14px rgba(28,42,74,0.14); text-align:left;">
+            <p style="font-size:15.5px; line-height:28px; margin:0; color:#3f4d6b;">
+              청약핏은 <b>청약통장은 있지만 관리하지 않는 사람</b>, 특히 부모님이 통장을 만들고 납입액까지 정해준 뒤 그대로 방치해 온 20대를 위해 만들었습니다. 이들의 진짜 문제는 <b>정보가 부족한 것이 아니라, 널려 있는 정보를 자기 조건에 적용하지 못하는 것</b>입니다.
+            </p>
+            <p style="font-size:15.5px; line-height:28px; margin:16px 0 0; color:#3f4d6b;">
+              그래서 청약핏은 "매달 얼마를 넣어야 하는가"를 먼저 묻지 않습니다. <b>지금 내 상태를 진단</b>하고, <b>내가 신청할 수 있는 유형과 준비 방향</b>을 먼저 보여준 다음, 납입 계획은 그 뒤에 안내합니다. 무주택·세대 구성·통장 조건을 바탕으로 공공분양과 민영주택 중 유리한 방향을 짚고, 가점 84점을 항목별로 분해하며, 지역 경쟁률과 추천 납입액까지 한 화면에서 연결해 줍니다.
+            </p>
+            <p style="font-size:15.5px; line-height:28px; margin:16px 0 0; color:#3f4d6b;">
+              무엇보다 <b>입력을 최소화하는 것</b>을 제1원칙으로 삼습니다. 사람들이 청약을 방치하는 근본 이유는 '귀찮음'인데, 서비스마저 쓰기 귀찮다면 존재 이유를 스스로 배신하는 셈이기 때문입니다. 최소한의 입력으로 답을 먼저 보여주고, 더 정확한 결과를 원할 때 추가 정보를 받는 <b>점진적 진단</b> 방식으로 설계했습니다.
+            </p>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:20px;">
+              <span style="font-size:12.5px; font-weight:700; color:#2f6fed; background:#eaf1ff; padding:7px 14px; border-radius:999px;">진단 먼저, 납입은 나중</span>
+              <span style="font-size:12.5px; font-weight:700; color:#22a366; background:#eafff3; padding:7px 14px; border-radius:999px;">입력 최소화 제1원칙</span>
+              <span style="font-size:12.5px; font-weight:700; color:#d98324; background:#fff3e0; padding:7px 14px; border-radius:999px;">설문 22명·프로토타입 인터뷰로 검증</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="product" style="padding:40px 0 64px;">
+        <p class="reveal" style="text-align:center; font-weight:700; color:#2f6fed; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 28px;">제공 기능</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px;">
+          <div class="reveal lift" style="background:#fff; border-radius:28px; padding:32px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.05s;">
+            <div style="width:52px; height:52px; border-radius:16px; background:#eaf1ff; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:18px;">🧭</div>
+            <h2 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px; margin:0 0 10px; color:#1c2a4a;">공공 vs 민영 트랙 진단</h2>
+            <p style="font-size:14.5px; line-height:24px; margin:0; color:#5c6a89;">통장 보유 기간, 무주택 기간, 세대 구성원 조건을 바탕으로 나에게 유리한 트랙을 명확히 제시해요.</p>
+          </div>
+          <div class="reveal lift" style="background:#fff; border-radius:28px; padding:32px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.16s;">
+            <div style="width:52px; height:52px; border-radius:16px; background:#eafff3; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:18px;">💰</div>
+            <h2 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px; margin:0 0 10px; color:#1c2a4a;">월 저축 납입액 가이드</h2>
+            <p style="font-size:14.5px; line-height:24px; margin:0; color:#5c6a89;">월 25만원 인상 개정안에 맞춰 증액할지, 감액 후 자금을 운용할지 구체적인 플랜을 제안해요.</p>
+          </div>
+          <div class="reveal lift" style="background:#fff; border-radius:28px; padding:32px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.27s;">
+            <div style="width:52px; height:52px; border-radius:16px; background:#fff3e0; display:flex; align-items:center; justify-content:center; font-size:26px; margin-bottom:18px;">🗺️</div>
+            <h2 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:20px; margin:0 0 10px; color:#1c2a4a;">실제 지도 기반 필요자금</h2>
+            <p style="font-size:14.5px; line-height:24px; margin:0; color:#5c6a89;">목표 단지의 예치금, 당첨 계약금(10%), 계약일 전 필수 준비 현금을 지도 위에서 바로 대조해요.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="reform" style="padding:24px 0 80px;">
+        <p class="reveal" style="text-align:center; font-weight:700; color:#2f6fed; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 28px;">2026 개정 반영</p>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:18px;">
+          <div class="reveal lift" style="background:#eaf1ff; border-radius:24px; padding:26px; transition-delay:0.05s;">
+            <span style="font-size:12px; font-weight:700; color:#2f6fed; text-transform:uppercase; letter-spacing:0.05em;">저축 인정</span>
+            <h3 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:10px 0 8px; color:#1c2a4a;">월 인정 한도 25만원</h3>
+            <p style="font-size:14px; line-height:22px; margin:0; color:#4a5a7a;">공공분양 인정 한도가 기존 10만원에서 월 25만원으로 확대되어 납입 전략 재정립이 필요해요.</p>
+          </div>
+          <div class="reveal lift" style="background:#eafff3; border-radius:24px; padding:26px; transition-delay:0.16s;">
+            <span style="font-size:12px; font-weight:700; color:#22a366; text-transform:uppercase; letter-spacing:0.05em;">가점 합산</span>
+            <h3 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:10px 0 8px; color:#1c2a4a;">배우자 통장기간 합산</h3>
+            <p style="font-size:14px; line-height:22px; margin:0; color:#4a5a7a;">민영 가점제 계산 시 배우자의 통장 가입기간에 따라 최대 3점까지 추가 가산이 적용돼요.</p>
+          </div>
+          <div class="reveal lift" style="background:#fff3e0; border-radius:24px; padding:26px; transition-delay:0.27s;">
+            <span style="font-size:12px; font-weight:700; color:#d98324; text-transform:uppercase; letter-spacing:0.05em;">무주택 판정</span>
+            <h3 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:10px 0 8px; color:#1c2a4a;">만 60세 이상 부모님 주택</h3>
+            <p style="font-size:14px; line-height:22px; margin:0; color:#4a5a7a;">동거하는 부모님이 만 60세 이상 자가를 소유한 경우 무주택자로 인정돼요.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <section id="team" style="position:relative; padding:24px 0 72px;">
+      <div style="max-width:1160px; margin:0 auto; padding:0 clamp(20px,5vw,72px);">
+        <div class="reveal" style="text-align:center; max-width:780px; margin:0 auto 40px;">
+          <p style="font-weight:700; color:#2f6fed; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; margin:0 0 18px;">함께 일하고 싶은 동료</p>
+          <h3 style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(24px,3.6vw,36px); line-height:1.3; color:#1c2a4a; margin:0;">
+            이런 동료와 함께 <span style="color:#2f6fed;">일하고 싶습니다</span> 🤝
+          </h3>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:20px;">
+          <div class="reveal lift" style="background:#fff; border-radius:26px; padding:30px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.05s;">
+            <div style="width:50px; height:50px; border-radius:15px; background:#eaf1ff; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;">🌱</div>
+            <h4 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:0 0 9px; color:#1c2a4a;">함께 성장할 수 있는 분</h4>
+            <p style="font-size:14px; line-height:23px; margin:0; color:#5c6a89;">서로의 코드를 리뷰하고, 모르는 부분은 솔직하게 묻고 채워주며 함께 나아가는 과정을 좋아합니다.</p>
+          </div>
+          <div class="reveal lift" style="background:#fff; border-radius:26px; padding:30px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.16s;">
+            <div style="width:50px; height:50px; border-radius:15px; background:#eafff3; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;">📝</div>
+            <h4 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:0 0 9px; color:#1c2a4a;">문제 해결 과정을 함께 기록하는 분</h4>
+            <p style="font-size:14px; line-height:23px; margin:0; color:#5c6a89;">마주친 문제와 해결 과정을 글로 남기고 공유하는 습관을 중요하게 생각합니다. 트러블슈팅과 학습 내용도 함께 기록으로 정리하고 싶습니다.</p>
+          </div>
+          <div class="reveal lift" style="background:#fff; border-radius:26px; padding:30px 26px; box-shadow:0 10px 30px -12px rgba(28,42,74,0.12); transition-delay:0.27s;">
+            <div style="width:50px; height:50px; border-radius:15px; background:#fff3e0; display:flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:16px;">💙</div>
+            <h4 style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:18px; margin:0 0 9px; color:#1c2a4a;">프로젝트에 애정을 갖는 분</h4>
+            <p style="font-size:14px; line-height:23px; margin:0; color:#5c6a89;">저는 '실제 사용자가 쓰는 서비스'를 만드는 것을 목표로 합니다. 제출이나 배포로 끝내지 않고, 사용자에게 가닿을 때까지 프로젝트를 아끼고 끝까지 책임지려는 애정을 가진 분과 함께하고 싶습니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="position:relative; background:#2f6fed; color:#fff; border-radius:40px 40px 0 0; margin-top:20px;">
+      <div style="max-width:1160px; margin:0 auto; padding:64px clamp(20px,5vw,72px); text-align:center;">
+        <h3 style="font-family:'Baloo 2',sans-serif; font-weight:800; font-size:clamp(28px,4vw,42px); line-height:1.2; margin:0 0 24px;">
+          지금 내 조건에 맞는 청약 전략을<br>3분 만에 확인해보세요 💙
+        </h3>
+        <button onclick="showApp()" style="font-family:'Baloo 2',sans-serif; font-weight:700; font-size:16px; background:#fff; color:#2f6fed; border:none; border-radius:999px; padding:16px 32px; cursor:pointer;">체험하기 →</button>
+      </div>
+    </section>
+
+    <footer style="max-width:1160px; margin:0 auto; padding:28px clamp(20px,5vw,72px); font-size:12.5px; line-height:21px; color:#8a94ad;">
+      <p style="margin:0;">본 진단 결과 및 지도 데이터는 시뮬레이션용 참고 자료이며, 실제 분양 공고 및 개별 자격 판정에 따라 상이할 수 있습니다.</p>
+      <p style="margin:4px 0 0;">© 2026 청약핏 (Chongyak Fit)</p>
+    </footer>
+  </div>
+
+  <div id="appShell" style="display:none;">
+
+  <!-- Toast Message Overlay -->
+  <div id="toast" class="fixed top-24 left-1/2 transform -translate-x-1/2 z-[100] hidden bg-slate-900/90 text-white px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-sm font-bold flex items-center gap-3 border border-slate-700 transition-all duration-300">
+    <span id="toastIcon">✨</span>
+    <span id="toastMsg">정보가 저장되었습니다.</span>
+  </div>
+
+  <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer shrink-0" onclick="openStep('profile')">
+        <div class="w-10 h-10 rounded-2xl bg-brand-500 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-brand-500/20 hover:rotate-12 hover:scale-110">ㅊ</div>
+        <div>
+          <span class="font-black text-2xl tracking-tight text-slate-900 block leading-none">청약핏</span>
+          <span class="text-[11px] text-slate-400 font-bold tracking-wider">CHONGYAK FIT</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Menu -->
+      <nav class="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-extrabold text-slate-600 overflow-x-auto py-1">
+        <button id="nav-profile" onclick="openStep('profile')" class="px-3 sm:px-4 py-2 rounded-xl hover:bg-slate-100 transition whitespace-nowrap flex items-center gap-1.5 bg-slate-200 text-slate-900">
+          <span>진단 체험하기</span>
+        </button>
+        <button id="nav-competition" onclick="openStep('competition')" class="px-3 sm:px-4 py-2 rounded-xl hover:bg-slate-100 transition whitespace-nowrap">
+          실제 단지 지도
+        </button>
+        <button id="nav-saved" onclick="openStep('saved')" class="px-3 sm:px-4 py-2 rounded-xl hover:bg-slate-100 transition whitespace-nowrap flex items-center gap-1.5">
+          <span>내 정보 저장</span>
+          <span id="syncBadge" class="w-2 h-2 rounded-full bg-slate-300"></span>
+        </button>
+        <button id="nav-bookmarks" onclick="openStep('bookmarks')" class="px-3 sm:px-4 py-2 rounded-xl hover:bg-slate-100 transition whitespace-nowrap flex items-center gap-1">
+          <span>관심 단지</span>
+          <span id="bookmarkCount" class="px-1.5 py-0.5 rounded-full bg-brand-50 text-brand-600 text-[10px] font-black">0</span>
+        </button>
+      </nav>
+
+      <!-- Primary Action Button -->
+      <div class="hidden md:flex items-center gap-3 shrink-0">
+        <button onclick="openStep('profile')" class="h-11 px-5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-xs sm:text-sm rounded-xl transition shadow-lg shadow-brand-500/20">
+          ⚡ 청약핏 체험하기
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-12">
+
+    <!-- ================= STEP 2: PROFILE FORM ================= -->
+    <section class="step-view active" data-step="profile">
+      <div class="max-w-3xl mx-auto">
+        
+        <!-- Progress Bar -->
+        <div class="mb-10">
+          <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-slate-500 mb-3">
+            <span>STEP 01. 기본 조건 입력</span>
+            <span class="text-brand-600">50% 진행</span>
+          </div>
+          <div class="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full bg-brand-500 rounded-full w-1/2 transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-[36px] p-8 sm:p-12 border border-slate-200/80 shadow-card">
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+            청약 가점에 영향을 주는 기본 조건을 입력해주세요
+          </h2>
+          <p class="text-slate-500 text-sm sm:text-base mb-8 leading-relaxed">
+            정확한 무주택 판정 및 가점 산출을 위해 통장 상태와 세대 구성을 알려주세요.
+          </p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="account" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">청약통장 보유 여부</label>
+              <select id="account" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="yes">네, 보유하고 있어요</option>
+                <option value="no">아니오, 아직 없어요</option>
+              </select>
+            </div>
+
+            <div id="accountYearsField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="accountYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">청약통장 가입기간</label>
+              <select id="accountYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="0.3">6개월 미만</option>
+                <option value="1">1년 이상 ~ 2년 미만</option>
+                <option value="3" selected>3년 이상 ~ 4년 미만</option>
+                <option value="5">5년 이상 ~ 6년 미만</option>
+                <option value="10">10년 이상 ~ 11년 미만</option>
+                <option value="15">15년 이상 (만점: 17점)</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="marital" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">결혼 상태</label>
+              <select id="marital" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="single">미혼</option>
+                <option value="planned">결혼 예정</option>
+                <option value="married">기혼</option>
+              </select>
+            </div>
+
+            <div id="spouseField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="spouseYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">배우자 통장 가입기간 (합산 가산)</label>
+              <select id="spouseYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="0">없음 / 6개월 미만</option>
+                <option value="1">1년 이상 ~ 2년 미만 (+1점)</option>
+                <option value="3">3년 이상 ~ 5년 미만 (+2점)</option>
+                <option value="5">5년 이상 (+3점 만점)</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition md:col-span-2">
+              <label for="home" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">본인 및 세대원 주택 보유 여부</label>
+              <select id="home" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="no">무주택 (세대원 전원 주택 없음)</option>
+                <option value="parent_owned">부모님 소유 자가 거주</option>
+                <option value="yes">유주택 (집 보유 중)</option>
+                <option value="unknown">잘 모르겠음</option>
+              </select>
+            </div>
+
+            <div id="parentAgeField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition md:col-span-2 hidden">
+              <label for="parentOwnerAge" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">주택 소유 부모님 연령 (만 나이)</label>
+              <select id="parentOwnerAge" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="unknown">확인 필요</option>
+                <option value="all60">명의자 부모님 모두 만 60세 이상 (무주택 인정 가능)</option>
+                <option value="under60">명의자 중 만 60세 미만 있음</option>
+              </select>
+            </div>
+
+            <div id="homelessField" class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition md:col-span-2">
+              <label for="homelessYears" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">무주택 기간</label>
+              <select id="homelessYears" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="0">1년 미만 (또는 만 30세 미만 미혼)</option>
+                <option value="1">1년 이상 ~ 2년 미만</option>
+                <option value="3">3년 이상 ~ 4년 미만</option>
+                <option value="5">5년 이상 ~ 6년 미만</option>
+                <option value="10">10년 이상 ~ 11년 미만</option>
+                <option value="15">15년 이상 (만점: 32점)</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="householder" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">세대주 여부</label>
+              <select id="householder" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="yes">세대주</option>
+                <option value="no">세대원</option>
+                <option value="unknown">잘 모르겠음</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="income" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">월평균 소득 수준 (도시근로자 기준)</label>
+              <select id="income" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="low">낮은 편 (100% 이하)</option>
+                <option value="mid" selected>보통 (100~140%)</option>
+                <option value="high">높은 편 (140% 초과)</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="children" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">미성년 자녀 수</label>
+              <select id="children" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="0">0명</option>
+                <option value="1">1명</option>
+                <option value="2">2명</option>
+                <option value="3">3명 이상</option>
+              </select>
+            </div>
+
+            <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+              <label for="dependents" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">부양가족 수 (본인 제외)</label>
+              <select id="dependents" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                <option value="0">0명 (기본 5점)</option>
+                <option value="1">1명 (10점)</option>
+                <option value="2">2명 (15점)</option>
+                <option value="3">3명 (20점)</option>
+                <option value="4">4명 이상 (25점~최대 35점)</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="flex gap-4">
+            <button class="h-16 px-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base rounded-2xl transition" type="button" onclick="openStep('home')">
+              이전
+            </button>
+            <button class="flex-1 h-16 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg rounded-2xl transition shadow-xl shadow-brand-500/20 flex items-center justify-center gap-2" type="button" onclick="openStep('target')">
+              다음 (목표 지역 및 납입액 입력)
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STEP 3: TARGET FORM ================= -->
+    <section class="step-view" data-step="target">
+      <div class="max-w-3xl mx-auto">
+        
+        <!-- Progress Bar -->
+        <div class="mb-10">
+          <div class="flex justify-between items-center text-xs sm:text-sm font-bold text-slate-500 mb-3">
+            <span>STEP 02. 목표 설정 및 현재 납입액</span>
+            <span class="text-brand-600">100% 완료</span>
+          </div>
+          <div class="h-2.5 w-full rounded-full bg-slate-200 overflow-hidden">
+            <div class="h-full bg-brand-500 rounded-full w-full transition-all duration-300"></div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-[36px] p-8 sm:p-12 border border-slate-200/80 shadow-card">
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
+            목표 청약 지역과 월 납입 금액을 설정해 주세요
+          </h2>
+          <p class="text-slate-500 text-sm sm:text-base mb-8 leading-relaxed">
+            지역별 당첨 커트라인과 개정된 공공분양 인정한도(월 25만원) 기준을 대조 분석합니다.
+          </p>
+
+          <div class="space-y-6 mb-10">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+                <label for="region" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">목표 청약 지역</label>
+                <select id="region" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                  <option value="seoul_gangnam">서울 강남·서초·송파</option>
+                  <option value="seoul_mapo">서울 마포·용산·성동</option>
+                  <option value="seoul_core">서울 종로·중구·광진</option>
+                  <option value="seoul_west">서울 강서·양천·영등포</option>
+                  <option value="seoul_north">서울 노원·도봉·강북</option>
+                  <option value="gyeonggi_hot" selected>경기 과천·분당·판교·광명</option>
+                  <option value="gyeonggi_south">경기 수원·용인·화성·동탄</option>
+                  <option value="gyeonggi_west">경기 부천·안양·의왕·군포</option>
+                  <option value="gyeonggi_north">경기 고양·파주·의정부</option>
+                  <option value="incheon">인천 광역시</option>
+                  <option value="busan">부산 광역시</option>
+                  <option value="daegu">대구 광역시</option>
+                  <option value="daejeon">대전 광역시</option>
+                  <option value="gwangju">광주 광역시</option>
+                  <option value="sejong">세종 특별자치시</option>
+                  <option value="local">기타 지방 도시</option>
+                </select>
+              </div>
+
+              <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/20 transition">
+                <label for="period" class="block text-xs sm:text-sm font-extrabold text-slate-500 mb-1.5">예상 청약 신청 시점</label>
+                <select id="period" class="w-full bg-transparent text-slate-900 font-bold text-base sm:text-lg outline-none cursor-pointer">
+                  <option value="soon">2년 이내 단기 신청</option>
+                  <option value="mid" selected>3년 ~ 5년 내 신청</option>
+                  <option value="later">5년 이후 장기 준비</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Amount Interactive Stepper Box -->
+            <div class="p-6 sm:p-8 rounded-[28px] border-2 border-brand-100 bg-brand-50/30">
+              <label class="block text-xs sm:text-sm font-extrabold text-slate-600 mb-4">현재 월 납입 설정금액</label>
+              
+              <div class="flex items-center justify-between gap-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
+                <button type="button" id="monthlyMinus" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-800 font-black text-3xl transition">−</button>
+                
+                <div class="flex items-baseline justify-center font-black text-slate-900">
+                  <input id="monthly" type="number" min="0" max="50" value="25" class="w-28 text-center text-4xl sm:text-5xl font-black outline-none bg-transparent text-brand-600 num-display" aria-label="현재 월 납입액">
+                  <span class="text-lg font-bold text-slate-500 ml-1.5">만원</span>
+                </div>
+
+                <button type="button" id="monthlyPlus" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 flex items-center justify-center text-slate-800 font-black text-3xl transition">+</button>
+              </div>
+
+              <!-- Quick Chips -->
+              <div class="flex flex-wrap gap-2.5 justify-center">
+                <button type="button" class="chip px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold transition hover:bg-slate-50" data-amount="0">0만원</button>
+                <button type="button" class="chip px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold transition hover:bg-slate-50" data-amount="2">2만원</button>
+                <button type="button" class="chip px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold transition hover:bg-slate-50" data-amount="10">10만원</button>
+                <button type="button" class="chip px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold transition hover:bg-slate-50 active" data-amount="25">25만원</button>
+                <button type="button" class="chip px-5 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs sm:text-sm font-bold transition hover:bg-slate-50" data-amount="50">50만원</button>
+              </div>
+
+              <div class="mt-5 p-4 rounded-2xl bg-white/80 border border-brand-100 flex items-start gap-3 text-xs sm:text-sm text-slate-600">
+                <span class="text-brand-500 font-bold text-base">💡 Tip</span>
+                <p class="leading-relaxed">2024년 11월부터 공공분양 월 인정 금액 한도가 기존 **10만원에서 25만원**으로 인상되었습니다.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="flex gap-4">
+            <button class="h-16 px-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base rounded-2xl transition" type="button" onclick="openStep('profile')">
+              이전
+            </button>
+            <button class="flex-1 h-16 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-extrabold text-base sm:text-lg rounded-2xl transition shadow-xl shadow-brand-500/20 flex items-center justify-center gap-2" type="button" onclick="openStep('result')">
+              맞춤 진단 리포트 생성
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= STEP 4: RESULT REPORT DASHBOARD ================= -->
+    <section class="step-view" data-step="result">
+      
+      <!-- Unified Width Vertical Flow Container -->
+      <div class="space-y-8 max-w-4xl mx-auto">
+
+        <!-- Top Hero Recommendation Banner -->
+        <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-brand-900 text-white p-8 sm:p-12 rounded-[36px] shadow-card relative overflow-hidden">
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+            <span id="amountAction" class="px-4 py-1.5 rounded-full bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-sm">감액 검토</span>
+            <span class="text-xs sm:text-sm text-slate-300 font-semibold">청약핏 AI 맞춤 진단 결과</span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div class="lg:col-span-7 space-y-3">
+              <h2 id="lane" class="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">공공 우선 전략</h2>
+              <p id="laneCopy" class="text-slate-300 text-base sm:text-lg leading-relaxed pt-1">
+                무주택 조건과 소득 구간을 고려할 때 공공분양 납입 인정을 우선 확보하는 것이 유리합니다.
+              </p>
+            </div>
+
+            <!-- Top Metrics Summary Grid -->
+            <div class="lg:col-span-5 grid grid-cols-3 gap-4 bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/10 text-center">
+              <div>
+                <span id="heroScoreLabel" class="text-xs sm:text-sm text-slate-300 font-medium block mb-1">예상 가점</span>
+                <div class="text-white font-black text-2xl sm:text-3xl">
+                  <span id="heroScore" class="num-display">24</span>
+                  <span id="heroScoreUnit" class="text-xs sm:text-sm text-slate-300 font-bold">/84점</span>
+                </div>
+              </div>
+              <div class="border-x border-white/10 px-2">
+                <span class="text-xs sm:text-sm text-slate-300 font-medium block mb-1">경쟁 강도</span>
+                <div id="heroCompetition" class="text-amber-300 font-black text-2xl sm:text-3xl num-display">140:1</div>
+              </div>
+              <div>
+                <span class="text-xs sm:text-sm text-slate-300 font-medium block mb-1">추천 납입액</span>
+                <div class="text-white font-black text-2xl sm:text-3xl">
+                  <span id="heroMonthly" class="text-brand-300 num-display">10</span>
+                  <span class="text-xs sm:text-sm text-slate-300 font-bold">만원</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Key Strategy Insight Box -->
+        <div class="p-6 sm:p-8 rounded-[28px] bg-brand-50 border border-brand-100 space-y-2">
+          <div class="flex items-center gap-2.5">
+            <span class="w-3 h-3 rounded-full bg-brand-500"></span>
+            <h3 id="mainInsight" class="text-brand-700 text-lg sm:text-xl font-black">가점 대비 경쟁률이 높아 전략 수정이 유효합니다</h3>
+          </div>
+          <p id="mainInsightCopy" class="text-slate-600 text-sm sm:text-base leading-relaxed pl-5">
+            목표 지역 단일 고정보다 인접 생활권 경쟁률 및 공공·특공 물량을 함께 겨냥하는 전략이 우위입니다.
+          </p>
+        </div>
+
+        <!-- Featured RECOMMENDED ACTION PLAN Card -->
+        <div class="p-8 sm:p-10 rounded-[32px] border border-slate-200/80 bg-white shadow-card space-y-6">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-black text-slate-400 uppercase tracking-wider">RECOMMENDED ACTION PLAN</span>
+            <span id="amountActionDetail" class="text-xs sm:text-sm font-black px-3.5 py-1.5 rounded-xl bg-amber-100 text-amber-800">감액 검토</span>
+          </div>
+
+          <!-- Big Number Comparison Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+              <span class="text-xs font-bold text-slate-500 block mb-1">현재 월 납입</span>
+              <div class="flex items-baseline">
+                <span id="currentMonthly" class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight num-display">25</span>
+                <span class="text-xs font-bold text-slate-500 ml-1">만원</span>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-brand-50/80 border border-brand-200 ring-2 ring-brand-500/20">
+              <span class="text-xs font-bold text-brand-600 block mb-1">추천 월 납입</span>
+              <div class="flex items-baseline">
+                <span id="recommendedMonthly" class="text-3xl sm:text-4xl font-black text-brand-600 tracking-tight num-display">10</span>
+                <span class="text-xs font-black text-brand-600 ml-1">만원</span>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-100">
+              <span class="text-xs font-bold text-slate-500 block mb-1">현재 추정 회차</span>
+              <div class="flex items-baseline">
+                <span id="currentRounds" class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight num-display">4</span>
+                <span class="text-xs font-bold text-slate-500 ml-1">회차</span>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-emerald-50/80 border border-emerald-200">
+              <span class="text-xs font-bold text-emerald-700 block mb-1">목표 달성 회차</span>
+              <div class="flex items-baseline">
+                <span id="targetRounds" class="text-3xl sm:text-4xl font-black text-emerald-600 tracking-tight num-display">120</span>
+                <span class="text-xs font-black text-emerald-700 ml-1">회차</span>
+              </div>
+            </div>
+          </div>
+
+          <p id="amountCopy" class="text-sm sm:text-base text-slate-600 leading-relaxed pt-4 border-t border-slate-100">
+            현재 25만원 납입 중입니다. 공공 우선 전략 시 월 10만원 인정기준을 고려해 여유 자금을 예치금 및 상급지 준비금으로 돌리는 감액을 제안합니다.
+          </p>
+        </div>
+
+        <!-- Private Score Card -->
+        <div id="privateScoreCard" class="p-8 sm:p-10 rounded-[32px] border border-slate-200/80 bg-white shadow-card">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg sm:text-xl font-extrabold text-slate-900">민영 가점제 세부 구성</h3>
+            <div class="text-slate-900 font-black">
+              <span id="totalScore" class="text-2xl font-black text-brand-600 num-display">24</span>
+              <span class="text-xs sm:text-sm font-bold text-slate-400">/ 84점 만점</span>
+            </div>
+          </div>
+
+          <div class="space-y-6 text-sm sm:text-base">
+            <div>
+              <div class="flex justify-between text-slate-600 mb-2">
+                <span>무주택 기간 (최대 32점)</span>
+                <span class="font-bold text-slate-900"><span id="homelessScore">2</span>점</span>
+              </div>
+              <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                <div id="homelessBar" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 6%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-600 mb-2">
+                <span>부양가족 수 (최대 35점)</span>
+                <span class="font-bold text-slate-900"><span id="dependentScore">5</span>점</span>
+              </div>
+              <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                <div id="dependentBar" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 14%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-slate-600 mb-2">
+                <span>통장 가입기간 (최대 17점)</span>
+                <span class="font-bold text-slate-900"><span id="accountScore">1</span>점</span>
+              </div>
+              <div class="h-3 rounded-full bg-slate-100 overflow-hidden">
+                <div id="accountBar" class="h-full bg-brand-500 rounded-full transition-all duration-500" style="width: 6%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Public Metric Card -->
+        <div id="publicMetricCard" class="p-8 sm:p-10 rounded-[32px] border border-slate-200/80 bg-white shadow-card hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg sm:text-xl font-extrabold text-slate-900">공공 순차제 핵심 지표</h3>
+            <span class="text-xs sm:text-sm font-black text-brand-600 bg-brand-50 px-3.5 py-1.5 rounded-xl">예시 기준</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm sm:text-base mb-4">
+            <div class="p-5 rounded-2xl bg-slate-50">
+              <span class="text-slate-400 font-bold block mb-1 text-xs">현재 납입회차</span>
+              <b id="publicRoundsNow" class="text-2xl sm:text-3xl font-black text-slate-900 num-display">4회</b>
+            </div>
+            <div class="p-5 rounded-2xl bg-brand-50/70 border border-brand-100">
+              <span class="text-brand-700 font-bold block mb-1 text-xs">월 인정 추천</span>
+              <b id="publicMonthlyCap" class="text-2xl sm:text-3xl font-black text-brand-600 num-display">25만원</b>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-slate-50">
+            <span class="text-slate-400 font-bold block mb-1 text-xs">왜 이 지표가 중요한가요?</span>
+            <p id="publicMetricCopy" class="text-slate-600 leading-relaxed text-sm">
+              공공분양은 민영 가점제가 아니라 납입회차와 인정 저축총액이 중요합니다. 여유가 있다면 월 25만원 인정 한도에 맞춰 관리하는 쪽이 유리합니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- Regional Competition Info -->
+        <div class="p-8 sm:p-10 rounded-[32px] border border-slate-200/80 bg-white shadow-card">
+          <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 mb-6">목표 지역 경쟁 분석</h3>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+            <div class="p-5 rounded-2xl bg-slate-50">
+              <span class="text-xs text-slate-400 font-bold block mb-1">예상 경쟁률</span>
+              <div id="competitionRate" class="text-2xl sm:text-3xl font-black text-slate-900 mb-1 num-display">140:1</div>
+              <p id="competitionCopy" class="text-xs text-slate-500 leading-tight">경기 주요 인기 신도시 기준 · 최근 분양 기준</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-slate-50">
+              <span class="text-xs text-slate-400 font-bold block mb-1">도전 난이도</span>
+              <div id="competitionLevel" class="text-2xl sm:text-3xl font-black text-rose-600 mb-1">매우 높음</div>
+              <p id="scoreNeed" class="text-xs text-slate-500 leading-tight">내 가점만으로는 불리, 인근 단지도 함께 비교</p>
+            </div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200/60 mb-6" id="marriageCard">
+            <b id="marriageTitle" class="text-sm font-black text-amber-900 block mb-1">결혼 예정 시 세대 구성 재점검 추천</b>
+            <p id="marriageCopy" class="text-xs sm:text-sm text-amber-800 leading-relaxed">
+              결혼 시 배우자 주택 보유 여부 및 배우자 청약통장 가입기간 합산 혜택을 이용할 수 있습니다.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button class="h-14 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-base rounded-2xl transition" type="button" onclick="openStep('competition')">
+              실제 지도에서 단지별 자금 비교하기 →
+            </button>
+            <button class="h-14 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-base rounded-2xl transition shadow-lg shadow-brand-500/20" type="button" onclick="saveProfileToCloud()">
+              ☁️ 내 진단 결과 클라우드 저장
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================= TAB 2: MY SAVED PROFILE ================= -->
+    <section class="step-view" data-step="saved">
+      <div class="max-w-4xl mx-auto space-y-8">
+        
+        <div class="bg-white rounded-[36px] p-8 sm:p-12 border border-slate-200/80 shadow-card">
+          <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+            <div>
+              <span class="text-xs font-bold text-brand-600 uppercase tracking-wider block mb-1">FIRESTORE CLOUD SYNC</span>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">내 진단 조건 저장 및 관리</h2>
+            </div>
+            <button onclick="saveProfileToCloud()" class="px-6 py-3.5 bg-brand-500 hover:bg-brand-600 text-white font-extrabold text-sm sm:text-base rounded-2xl shadow-lg shadow-brand-500/20 transition flex items-center gap-2">
+              <span>☁️ 현재 설정 저장하기</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 gap-6 mb-8">
+            <div class="p-6 rounded-2xl bg-slate-50 border border-slate-100 space-y-4">
+              <h3 class="font-extrabold text-slate-800 text-base flex items-center gap-2">
+                <span>📋</span> 현재 입력된 기본 조건
+              </h3>
+              <ul class="space-y-2.5 text-xs sm:text-sm text-slate-600">
+                <li class="flex justify-between"><span>청약통장:</span> <b id="summaryAccount" class="text-slate-900">보유 (3년)</b></li>
+                <li class="flex justify-between"><span>결혼상태:</span> <b id="summaryMarital" class="text-slate-900">미혼</b></li>
+                <li class="flex justify-between"><span>주택보유:</span> <b id="summaryHome" class="text-slate-900">무주택</b></li>
+                <li class="flex justify-between"><span>세대주여부:</span> <b id="summaryHouseholder" class="text-slate-900">세대주</b></li>
+                <li class="flex justify-between"><span>목표지역:</span> <b id="summaryRegion" class="text-slate-900">경기 과천·분당</b></li>
+                <li class="flex justify-between"><span>현재 월 납입:</span> <b id="summaryMonthly" class="text-brand-600">25만원</b></li>
+              </ul>
+            </div>
+          </div>
+
+          <div id="cloudStatusBox" class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm font-semibold flex items-center justify-between">
+            <span>상태: 인증 준비 완료</span>
+            <span id="lastSavedTime" class="text-emerald-600">최근 저장 기록 없음</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= STEP 5: COMPETITION & REAL MAP ================= -->
+    <section class="step-view" data-step="competition">
+      <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            실제 지도 기반 단지 분석
+          </h2>
+          <p class="text-slate-500 text-sm sm:text-base mt-1">
+            OpenStreetMap 지도를 자유롭게 이동하며 실제 단지별 분양가와 필요 준비 현금을 확인하세요.
+          </p>
+        </div>
+        <div class="flex gap-2">
+          <select id="mapRegionFilter" class="px-4 py-2.5 bg-white border border-slate-200 text-slate-800 font-bold text-sm rounded-2xl outline-none cursor-pointer">
+            <option value="seoul_gangnam">서울 강남·서초·송파</option>
+            <option value="gyeonggi_hot" selected>경기 과천·분당·판교</option>
+            <option value="seoul_mapo">서울 마포·용산·성동</option>
+            <option value="gyeonggi_south">경기 수원·용인·동탄</option>
+            <option value="incheon">인천 광역시</option>
+            <option value="busan">부산 광역시</option>
+            <option value="sejong">세종 특별자치시</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Real Leaflet Map Container & Details Panel Split -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Column: Real Interactive Map -->
+        <div class="lg:col-span-7">
+          <div class="p-4 rounded-[32px] border border-slate-200/80 bg-white shadow-card">
+            <!-- Leaflet Container -->
+            <div id="leafletMap" class="w-full h-[450px] sm:h-[520px] rounded-2xl z-10 border border-slate-100"></div>
+          </div>
+        </div>
+
+        <!-- Right Column: Active Complex Details & Scrap Action -->
+        <div class="lg:col-span-5 space-y-6">
+          
+          <div class="p-8 rounded-[32px] border border-slate-200/80 bg-white shadow-card">
+            <div class="flex justify-between items-start mb-6">
+              <div>
+                <b id="propertyName" class="text-2xl font-black text-slate-900 block leading-tight">과천 지식정보타운 린파밀리에</b>
+                <span id="propertyMeta" class="text-xs sm:text-sm text-slate-500 font-medium">84㎡ 중심 · 420세대 모집</span>
+              </div>
+              <div id="propertyRate" class="px-3.5 py-1.5 rounded-full bg-brand-50 text-brand-600 font-black text-sm border border-brand-100">
+                140:1
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="p-4 rounded-2xl bg-slate-50">
+                <span class="text-xs font-bold text-slate-400 block mb-1">청약 예치금</span>
+                <b id="requiredDeposit" class="text-lg sm:text-xl font-black text-slate-900 num-display">300만원</b>
+              </div>
+              <div class="p-4 rounded-2xl bg-slate-50">
+                <span class="text-xs font-bold text-slate-400 block mb-1">당첨 계약금(10%)</span>
+                <b id="contractMoney" class="text-lg sm:text-xl font-black text-slate-900 num-display">8,400만원</b>
+              </div>
+              <div class="p-5 rounded-2xl bg-brand-50/80 border border-brand-100 col-span-2">
+                <span class="text-xs sm:text-sm font-bold text-brand-700 block mb-1">계약일 전 필요 현금 (계약금+예치금)</span>
+                <b id="cashBeforeLoan" class="text-2xl sm:text-3xl font-black text-brand-600 num-display">8,700만원</b>
+              </div>
+            </div>
+
+            <div id="unitList" class="space-y-3 text-xs sm:text-sm text-slate-600 border-t border-slate-100 pt-4 mb-6">
+              <!-- Injected via JS -->
+            </div>
+
+            <button id="btnScrap" onclick="toggleBookmarkCurrent()" class="w-full h-14 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+              <span>⭐ 이 단지 관심 단지로 스크랩</span>
+            </button>
+          </div>
+
+          <!-- Nearby District Comparison -->
+          <div class="p-8 rounded-[32px] border border-slate-200/80 bg-white shadow-card">
+            <h3 class="text-base font-black text-slate-800 mb-4">인근 생활권 당첨 경쟁률</h3>
+            <div id="districtList" class="space-y-3 text-xs sm:text-sm">
+              <!-- Injected via JS -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= TAB 4: BOOKMARKED COMPLEXES ================= -->
+    <section class="step-view" data-step="bookmarks">
+      <div class="max-w-4xl mx-auto space-y-8">
+        
+        <div class="bg-white rounded-[36px] p-8 sm:p-12 border border-slate-200/80 shadow-card">
+          <div class="flex justify-between items-center mb-6">
+            <div>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">내가 스크랩한 관심 단지</h2>
+              <p class="text-slate-500 text-sm mt-1">목표 단지별 계약 필요 자금의 합계를 한눈에 확인하세요.</p>
+            </div>
+            <span class="px-4 py-2 rounded-2xl bg-brand-50 text-brand-600 font-black text-sm">
+              총 <span id="bookmarkTotalCount">0</span>개 단지
+            </span>
+          </div>
+
+          <div id="bookmarkList" class="space-y-4">
+            <!-- Injected via JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200/80 mt-16 py-12">
+    <div class="max-w-6xl mx-auto px-6 sm:px-10 text-center text-xs sm:text-sm text-slate-400 leading-relaxed space-y-2">
+      <p class="font-bold text-slate-600 mb-2 text-base">청약핏 (Chongyak Fit) - 토스 스타일 맞춤 청약 방향 진단</p>
+      <p>본 진단 결과 및 실제 지도 데이터는 시뮬레이션용 참고 자료이며, 실제 분양 공고 및 개별 자격 판정에 따라 상이할 수 있습니다.</p>
+      <p class="pt-2">© 2026 CHONGYAK FIT. All rights reserved.</p>
+    </div>
+  </footer>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firestore Integration Setup
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'chongyak-fit-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "demo-key",
+      authDomain: "demo.firebaseapp.com",
+      projectId: "demo-app",
+      storageBucket: "demo.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:demo"
+    };
+
+    let app, auth, db;
+    let currentUser = null;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getFirestore(app);
+
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+      currentUser = auth.currentUser;
+      const statusBox = document.getElementById('cloudStatusBox');
+      if (statusBox) {
+        statusBox.innerHTML = `<span>상태: 클라우드 연동됨 (UID: ${currentUser.uid.slice(0, 8)}...)</span>`;
+      }
+      const syncBadge = document.getElementById('syncBadge');
+      if (syncBadge) {
+        syncBadge.classList.replace('bg-slate-300', 'bg-emerald-500');
+      }
+    } catch (e) {
+      console.warn("Firestore running in single-session fallback mode.");
+    }
+
+    // Save profile to Cloud
+    window.saveProfileToCloud = async function() {
+      if (!currentUser || !db) {
+        showToast("⚠️ 클라우드 연결 준비 중입니다.");
+        return;
+      }
+      const data = {
+        account: account.value,
+        accountYears: accountYears.value,
+        marital: marital.value,
+        spouseYears: spouseYears.value,
+        home: home.value,
+        parentOwnerAge: parentOwnerAge.value,
+        homelessYears: homelessYears.value,
+        householder: householder.value,
+        income: income.value,
+        children: children.value,
+        dependents: dependents.value,
+        region: region.value,
+        period: period.value,
+        monthly: monthly.value,
+        savedAt: new Date().toLocaleString("ko-KR")
+      };
+
+      try {
+        const userDocRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profiles', 'saved_profile');
+        await setDoc(userDocRef, data);
+        showToast("☁️ 내 진단 정보가 안전하게 클라우드에 저장되었습니다!");
+        const lastSaved = document.getElementById('lastSavedTime');
+        if (lastSaved) lastSaved.textContent = `최근 저장: ${data.savedAt}`;
+      } catch (err) {
+        showToast("❌ 저장 중 오류가 발생했습니다.");
+      }
+    };
+  </script>
+
+  <script>
+    // App State & Controls
+    const steps = document.querySelectorAll(".step-view");
+    
+    const account = document.querySelector("#account");
+    const accountYears = document.querySelector("#accountYears");
+    const marital = document.querySelector("#marital");
+    const spouseYears = document.querySelector("#spouseYears");
+    const home = document.querySelector("#home");
+    const parentOwnerAge = document.querySelector("#parentOwnerAge");
+    const homelessYears = document.querySelector("#homelessYears");
+    const householder = document.querySelector("#householder");
+    const income = document.querySelector("#income");
+    const children = document.querySelector("#children");
+    const dependents = document.querySelector("#dependents");
+    const region = document.querySelector("#region");
+    const period = document.querySelector("#period");
+    const monthly = document.querySelector("#monthly");
+
+    const accountYearsField = document.querySelector("#accountYearsField");
+    const spouseField = document.querySelector("#spouseField");
+    const parentAgeField = document.querySelector("#parentAgeField");
+    const homelessField = document.querySelector("#homelessField");
+    const monthlyMinus = document.querySelector("#monthlyMinus");
+    const monthlyPlus = document.querySelector("#monthlyPlus");
+    const chips = document.querySelectorAll(".chip");
+    
+    // Result Display Nodes
+    const lane = document.querySelector("#lane");
+    const laneCopy = document.querySelector("#laneCopy");
+    const heroScoreLabel = document.querySelector("#heroScoreLabel");
+    const heroScore = document.querySelector("#heroScore");
+    const heroScoreUnit = document.querySelector("#heroScoreUnit");
+    const heroCompetition = document.querySelector("#heroCompetition");
+    const heroMonthly = document.querySelector("#heroMonthly");
+    const mainInsight = document.querySelector("#mainInsight");
+    const mainInsightCopy = document.querySelector("#mainInsightCopy");
+    const totalScore = document.querySelector("#totalScore");
+    const homelessScore = document.querySelector("#homelessScore");
+    const dependentScore = document.querySelector("#dependentScore");
+    const accountScore = document.querySelector("#accountScore");
+    const homelessBar = document.querySelector("#homelessBar");
+    const dependentBar = document.querySelector("#dependentBar");
+    const accountBar = document.querySelector("#accountBar");
+    const privateScoreCard = document.querySelector("#privateScoreCard");
+    const publicMetricCard = document.querySelector("#publicMetricCard");
+    const publicRoundsNow = document.querySelector("#publicRoundsNow");
+    const publicMonthlyCap = document.querySelector("#publicMonthlyCap");
+    const publicMetricCopy = document.querySelector("#publicMetricCopy");
+    const competitionRate = document.querySelector("#competitionRate");
+    const competitionCopy = document.querySelector("#competitionCopy");
+    const competitionLevel = document.querySelector("#competitionLevel");
+    const scoreNeed = document.querySelector("#scoreNeed");
+    const currentMonthly = document.querySelector("#currentMonthly");
+    const recommendedMonthly = document.querySelector("#recommendedMonthly");
+    const currentRounds = document.querySelector("#currentRounds");
+    const targetRounds = document.querySelector("#targetRounds");
+    const marriageTitle = document.querySelector("#marriageTitle");
+    const marriageCopy = document.querySelector("#marriageCopy");
+    const districtList = document.querySelector("#districtList");
+    const amountAction = document.querySelector("#amountAction");
+    const amountActionDetail = document.querySelector("#amountActionDetail");
+    const amountCopy = document.querySelector("#amountCopy");
+    
+    // Property Display Nodes
+    const propertyName = document.querySelector("#propertyName");
+    const propertyMeta = document.querySelector("#propertyMeta");
+    const propertyRate = document.querySelector("#propertyRate");
+    const requiredDeposit = document.querySelector("#requiredDeposit");
+    const contractMoney = document.querySelector("#contractMoney");
+    const cashBeforeLoan = document.querySelector("#cashBeforeLoan");
+    const unitList = document.querySelector("#unitList");
+    const mapRegionFilter = document.querySelector("#mapRegionFilter");
+
+    // Real Coordinates Data Map
+    const realComplexesData = {
+      seoul_gangnam: {
+        center: [37.4979, 127.0276],
+        zoom: 13,
+        complexes: [
+          { id: "gn_1", code: "A", name: "반포 래미안 원베일리", lat: 37.5052, lng: 126.9985, meta: "84㎡ 중심 · 2,990세대", rate: "180:1", deposit: "500만원", contract: "1억 6,500만원", cash: "1억 7,000만원" },
+          { id: "gn_2", code: "B", name: "잠실 래미안 아이파크", lat: 37.5165, lng: 127.1085, meta: "84㎡ 중심 · 2,678세대", rate: "145:1", deposit: "500만원", contract: "1억 4,200만원", cash: "1억 4,700만원" },
+          { id: "gn_3", code: "C", name: "잠원 메이플자이", lat: 37.5110, lng: 127.0120, meta: "59㎡ 중심 · 3,307세대", rate: "210:1", deposit: "300만원", contract: "1억 2,100만원", cash: "1억 2,400만원" }
+        ]
+      },
+      gyeonggi_hot: {
+        center: [37.4080, 127.0800],
+        zoom: 12,
+        complexes: [
+          { id: "gh_1", code: "A", name: "과천 지식정보타운 린파밀리에", lat: 37.4220, lng: 126.9780, meta: "84㎡ 중심 · 659세대", rate: "140:1", deposit: "300만원", contract: "8,400만원", cash: "8,700만원" },
+          { id: "gh_2", code: "B", name: "판교 밸리자이", lat: 37.4080, lng: 127.0980, meta: "84㎡ 중심 · 350세대", rate: "128:1", deposit: "300만원", contract: "9,800만원", cash: "1억 100만원" },
+          { id: "gh_3", code: "C", name: "광명 자이 더샵 포레나", lat: 37.4810, lng: 126.8620, meta: "59㎡ 중심 · 3,585세대", rate: "42:1", deposit: "200만원", contract: "6,800만원", cash: "7,000만원" }
+        ]
+      },
+      seoul_mapo: {
+        center: [37.5450, 126.9600],
+        zoom: 13,
+        complexes: [
+          { id: "mp_1", code: "A", name: "마포 자이 힐스테이트 라체르보", lat: 37.5480, lng: 126.9550, meta: "84㎡ 중심 · 1,101세대", rate: "130:1", deposit: "300만원", contract: "1억 2,800만원", cash: "1억 3,100만원" },
+          { id: "mp_2", code: "B", name: "용산 호반써밋 에이디션", lat: 37.5280, lng: 126.9680, meta: "84㎡ 중심 · 110세대", rate: "160:1", deposit: "500만원", contract: "1억 6,200만원", cash: "1억 6,700만원" }
+        ]
+      },
+      gyeonggi_south: {
+        center: [37.2200, 127.0800],
+        zoom: 11,
+        complexes: [
+          { id: "gs_1", code: "A", name: "동탄역 대방 엘리움 더시그니처", lat: 37.1980, lng: 127.0980, meta: "84㎡ 중심 · 464세대", rate: "85:1", deposit: "200만원", contract: "6,500만원", cash: "6,700만원" },
+          { id: "gs_2", code: "B", name: "영통 자이 센트럴파크", lat: 37.2520, lng: 127.0720, meta: "84㎡ 중심 · 588세대", rate: "65:1", deposit: "200만원", contract: "7,200만원", cash: "7,400만원" }
+        ]
+      },
+      incheon: {
+        center: [37.3850, 126.6500],
+        zoom: 12,
+        complexes: [
+          { id: "ic_1", code: "A", name: "송도 자이 풍경채 그라노블", lat: 37.3750, lng: 126.6620, meta: "84㎡ 중심 · 2,728세대", rate: "24:1", deposit: "200만원", contract: "5,800만원", cash: "6,000만원" }
+        ]
+      },
+      busan: {
+        center: [35.1795, 129.0756],
+        zoom: 12,
+        complexes: [
+          { id: "bs_1", code: "A", name: "양정 자이 더샵 스키에르", lat: 35.1750, lng: 129.0710, meta: "84㎡ 중심 · 2,276세대", rate: "42:1", deposit: "300만원", contract: "6,200만원", cash: "6,500만원" }
+        ]
+      },
+      sejong: {
+        center: [36.4800, 127.2890],
+        zoom: 13,
+        complexes: [
+          { id: "sj_1", code: "A", name: "세종 엘리프 유포리아", lat: 36.4820, lng: 127.2910, meta: "84㎡ 중심 · 660세대", rate: "70:1", deposit: "200만원", contract: "4,900만원", cash: "5,100만원" }
+        ]
+      }
+    };
+
+    // Regional Competition Data Mock
+    const competitionData = {
+      seoul_gangnam: { name: "서울 강남·서초·송파", rate: "180:1", level: "매우 높음", copy: "강남권 최선호 지역 기준", nearby: [["서울 마포·용산·성동", "130:1"], ["경기 과천·분당", "120:1"]] },
+      seoul_mapo: { name: "서울 마포·용산·성동", rate: "130:1", level: "매우 높음", copy: "마용성 도심 접근 지역 기준", nearby: [["서울 강남·서초·송파", "180:1"], ["서울 강서·양천", "75:1"]] },
+      seoul_core: { name: "서울 종로·중구·광진", rate: "110:1", level: "높음", copy: "도심 핵심 생활권 기준", nearby: [["서울 마포·용산", "130:1"], ["서울 노원·도봉", "55:1"]] },
+      seoul_west: { name: "서울 강서·양천·영등포", rate: "75:1", level: "높음", copy: "서부 권역 주요 생활권 기준", nearby: [["인천 광역시", "24:1"], ["경기 부천·안양", "50:1"]] },
+      seoul_north: { name: "서울 노원·도봉·강북", rate: "55:1", level: "보통", copy: "북부 생활권 기준", nearby: [["경기 고양·파주", "28:1"], ["서울 종로·중구", "110:1"]] },
+      gyeonggi_hot: { name: "경기 과천·분당·판교·광명", rate: "140:1", level: "매우 높음", copy: "경기 주요 인기 신도시 기준", nearby: [["서울 강남·서초·송파", "180:1"], ["경기 수원·용인·화성", "65:1"]] },
+      gyeonggi_south: { name: "경기 수원·용인·화성·동탄", rate: "65:1", level: "높음", copy: "경기 남부 주요 신도시 기준", nearby: [["경기 과천·분당", "140:1"], ["세종시", "70:1"]] },
+      gyeonggi_west: { name: "경기 부천·안양·의왕·군포", rate: "50:1", level: "보통", copy: "경기 서남부 권역 기준", nearby: [["인천 광역시", "24:1"], ["서울 강서·영등포", "75:1"]] },
+      gyeonggi_north: { name: "경기 고양·파주·의정부", rate: "28:1", level: "보통", copy: "경기 북부 주요 택지 기준", nearby: [["서울 노원·도봉", "55:1"], ["인천 광역시", "24:1"]] },
+      incheon: { name: "인천 광역시", rate: "24:1", level: "보통", copy: "인천 주요 검단·송도 기준", nearby: [["서울 강서·양천", "75:1"], ["경기 부천·안양", "50:1"]] },
+      busan: { name: "부산 광역시", rate: "42:1", level: "보통", copy: "부산 주요 해운대·연제 기준", nearby: [["울산 광역시", "18:1"], ["대구 광역시", "34:1"]] },
+      daegu: { name: "대구 광역시", rate: "34:1", level: "보통", copy: "대구 수성·중구 기준", nearby: [["부산 광역시", "42:1"], ["대전 광역시", "40:1"]] },
+      daejeon: { name: "대전 광역시", rate: "40:1", level: "보통", copy: "대전 유성·서구 기준", nearby: [["세종 특별자치시", "70:1"], ["대구 광역시", "34:1"]] },
+      gwangju: { name: "광주 광역시", rate: "22:1", level: "보통", copy: "광주 남구·서구 기준", nearby: [["대전 광역시", "40:1"], ["기타 지방", "12:1"]] },
+      sejong: { name: "세종 특별자치시", rate: "70:1", level: "높음", copy: "세종 예정지역 기준", nearby: [["대전 광역시", "40:1"], ["경기 수원·동탄", "65:1"]] },
+      local: { name: "기타 지방 도시", rate: "12:1", level: "낮음", copy: "지방 주요 도시 평균 기준", nearby: [["광주 광역시", "22:1"], ["인천 광역시", "24:1"]] }
+    };
+
+    const regionWeight = {
+      seoul_gangnam: 3, seoul_mapo: 3, seoul_core: 3, seoul_west: 2, seoul_north: 2,
+      gyeonggi_hot: 3, gyeonggi_south: 2, gyeonggi_west: 2, gyeonggi_north: 1,
+      incheon: 1, busan: 2, daegu: 2, daejeon: 2, gwangju: 1, sejong: 2, local: 1
+    };
+
+    // State Variables
+    let bookmarkedComplexes = [];
+    let currentSelectedComplex = null;
+    let leafletMapInstance = null;
+    let mapMarkers = [];
+
+    // Toast Notice Helper
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      if (!toast) return;
+      document.getElementById("toastMsg").textContent = msg;
+      toast.classList.remove("hidden");
+      setTimeout(() => toast.classList.add("hidden"), 3000);
+    }
+
+    // Navigation Step View Switcher
+    function showApp() {
+      document.getElementById("landingView").style.display = "none";
+      document.getElementById("appShell").style.display = "";
+      window.scrollTo({ top: 0 });
+    }
+
+    function openStep(id) {
+      updateResult();
+      steps.forEach((step) => {
+        step.classList.toggle("active", step.dataset.step === id);
+      });
+
+      ['profile', 'competition', 'saved', 'bookmarks'].forEach((stepName) => {
+        const btn = document.querySelector(`#nav-${stepName}`);
+        if(btn) {
+          if(stepName === id || (id === 'target' || id === 'result') && stepName === 'profile') {
+            btn.classList.add('bg-slate-200', 'text-slate-900');
+          } else {
+            btn.classList.remove('bg-slate-200', 'text-slate-900');
+          }
+        }
+      });
+
+      if (id === 'competition') {
+        setTimeout(initOrUpdateMap, 250);
+      }
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function updateFieldVisibility() {
+      if (accountYearsField) accountYearsField.classList.toggle("hidden", account.value === "no");
+      const single = marital.value === "single";
+      if (spouseField) spouseField.classList.toggle("hidden", single);
+      if (parentAgeField) parentAgeField.classList.toggle("hidden", home.value !== "parent_owned");
+      const canEnterHomelessYears = home.value === "no" || (home.value === "parent_owned" && parentOwnerAge.value === "all60");
+      if (homelessField) homelessField.classList.toggle("hidden", !canEnterHomelessYears);
+    }
+
+    function isEffectivelyNoHome() {
+      if (home.value === "no") return true;
+      if (home.value === "parent_owned" && parentOwnerAge.value === "all60") return true;
+      return false;
+    }
+
+    function setMonthly(value) {
+      const clamped = Math.max(0, Math.min(50, Math.round(value) || 0));
+      monthly.value = clamped;
+      syncChips();
+      updateResult();
+    }
+
+    function syncChips() {
+      const value = Number(monthly.value || 0);
+      chips.forEach((chip) => {
+        const on = Number(chip.dataset.amount) === value;
+        chip.classList.toggle("active", on);
+      });
+    }
+
+    function gajeomScores() {
+      const homelessYearValue = Number(homelessYears.value);
+      const accountYearValue = Number(accountYears.value);
+      const spouseYearValue = Number(spouseYears.value);
+      const dependentValue = Math.max(Number(dependents.value), Number(children.value));
+
+      const noHomeScore = isEffectivelyNoHome() ? Math.min(32, homelessYearValue >= 15 ? 32 : (homelessYearValue + 1) * 2) : 0;
+      const dependentScoreValue = Math.min(35, 5 + dependentValue * 5);
+      const accountScoreValue = account.value === "no" ? 0 : accountYearValue < 0.5 ? 1 : Math.min(17, accountYearValue >= 15 ? 17 : Math.max(2, Math.floor(accountYearValue) + 2));
+      const spouseBonus = marital.value === "single" ? 0 : Math.min(3, Math.floor(spouseYearValue / 2));
+      const combinedAccountScore = Math.min(17, accountScoreValue + spouseBonus);
+
+      return {
+        homeless: noHomeScore,
+        dependent: dependentScoreValue,
+        account: combinedAccountScore,
+        spouseBonus,
+        total: noHomeScore + dependentScoreValue + combinedAccountScore
+      };
+    }
+
+    function updateInsight(scores, competition, laneInfo) {
+      if (home.value === "parent_owned" && parentOwnerAge.value !== "all60") {
+        mainInsight.textContent = "부모님 소유 주택 때문에 무주택 판단 확인이 필요합니다";
+        mainInsightCopy.textContent = "같은 등본에 부모님 소유 자가가 있으면 원칙적으로 세대 주택으로 볼 수 있습니다. 다만 명의자 부모님이 모두 만 60세 이상이면 일부 청약에서 무주택으로 인정될 수 있어요.";
+      } else if (home.value === "parent_owned" && parentOwnerAge.value === "all60") {
+        mainInsight.textContent = "부모님 주택 예외를 반영해 무주택 가능성으로 계산했습니다";
+        mainInsightCopy.textContent = "명의자인 부모님이 모두 만 60세 이상이면 일반 민영·공공분양에서는 무주택으로 볼 수 있습니다. 노부모부양 특공이나 공공임대는 예외가 다를 수 있어요.";
+      } else if (competition.level === "매우 높음" && scores.total < 50) {
+        mainInsight.textContent = "가점 대비 경쟁률이 높아 전략 수정이 유효합니다";
+        mainInsightCopy.textContent = "목표 지역 단일 고정보다 인접 생활권 경쟁률 및 공공·특공 물량을 함께 겨냥하는 전략이 우위입니다.";
+      } else if (laneInfo.label.includes("민영") && scores.total >= 58) {
+        mainInsight.textContent = "민영 가점제 당첨 가능권 범위입니다";
+        mainInsightCopy.textContent = "쌓인 가점이 높아 민영주택 가점제와 예치금 충족 기준을 최우선으로 관리하세요.";
+      } else {
+        mainInsight.textContent = "무조건적인 증액보다 공급유형 선택이 먼저입니다";
+        mainInsightCopy.textContent = "공공과 민영 중 나에게 유효한 트랙을 확정한 뒤 납입액을 맞춤 설정하세요.";
+      }
+
+      if (marital.value === "single") {
+        marriageTitle.textContent = "결혼 예정 시 세대 구성 재점검 추천";
+        marriageCopy.textContent = "결혼 시 배우자 주택 보유 여부 및 배우자 청약통장 가입기간 합산 혜택을 이용할 수 있습니다.";
+      } else {
+        marriageTitle.textContent = `배우자 통장기간 보정 반영 (+${scores.spouseBonus}점)`;
+        marriageCopy.textContent = "민영 가점제 개정으로 배우자의 통장 가입기간 혜택이 정상 합산 산정됩니다.";
+      }
+    }
+
+    function recommendLane() {
+      const scores = gajeomScores();
+      const childCount = Number(children.value);
+
+      if (account.value === "no") {
+        return { label: "통장 개설 우선", copy: "청약통장 신규 개설 및 납입 루틴 형성이 가장 시급합니다." };
+      }
+      if (scores.total >= 58 && regionWeight[region.value] >= 2) {
+        return { label: "민영 가점제 도전", copy: `예상 가점 ${scores.total}점으로 민영주택 가점제 상위권 도전을 권장합니다.` };
+      }
+      if (isEffectivelyNoHome() && childCount >= 2 && income.value !== "high") {
+        return { label: "공공·특공 우선", copy: "무주택 및 다자녀 조건으로 공공분양·특별공급 자격부터 확인하는 전략을 권장합니다." };
+      }
+      if (isEffectivelyNoHome() && householder.value === "yes" && income.value !== "high") {
+        return { label: "공공 우선 전략", copy: "무주택 세대주 자격으로 공공분양 회차와 월 인정금액을 먼저 관리하는 안을 추천합니다." };
+      }
+      return { label: "민영 예치금 전략", copy: "민영주택 청약 예치 기준 금액 달성을 목표로 관리하는 것이 유리합니다." };
+    }
+
+    function recommendMonthly(laneLabel) {
+      const weight = regionWeight[region.value];
+      if (laneLabel === "통장 개설 우선") return 10;
+      if (laneLabel.includes("공공")) return 25;
+      if (laneLabel === "민영 가점제 도전") return weight >= 3 ? 25 : 20;
+      return weight >= 3 ? 25 : 15;
+    }
+
+    function paymentRounds() {
+      const current = account.value === "no" ? 0 : Math.max(1, Math.round(Number(accountYears.value) * 12));
+      const competition = competitionData[region.value];
+      let target = 60;
+      if (competition.level === "매우 높음") target = 120;
+      else if (competition.level === "높음") target = 84;
+      return { current, target };
+    }
+
+    function moneyMessage(now, recommended, laneLabel) {
+      if (account.value === "no") {
+        return { action: "통장 신규 개설", copy: `월 ${recommended}만원 플랜으로 통장을 만들어 청약 회차를 쌓으세요.` };
+      }
+      if (now === 0) {
+        return { action: "납입 시작 권장", copy: `현재 납입이 멈춰있습니다. ${laneLabel} 트랙 기준으로 월 ${recommended}만원 설정을 권장합니다.` };
+      }
+      if (recommended < now) {
+        return { action: "감액 검토", copy: `현재 ${now}만원을 납입 중입니다. ${laneLabel} 목표 시 월 ${recommended}만원으로 조정하고 남는 금액은 주거 자금으로 축적할 수 있습니다.` };
+      }
+      if (recommended > now) {
+        return { action: "증액 추천", copy: `현재 ${now}만원에서 목표 달성 속도를 올리기 위해 월 ${recommended}만원으로 인상을 제안합니다.` };
+      }
+      return { action: "적정 납입 유지", copy: `현재 ${now}만원 납입액은 적정 가이드에 부합합니다. 이대로 유지를 권장합니다.` };
+    }
+
+    // Leaflet Real Map Setup & Marker Rendering
+    function initOrUpdateMap() {
+      const mapContainer = document.getElementById("leafletMap");
+      if (!mapContainer) return;
+
+      // If the Leaflet library itself didn't load (e.g. blocked network), show a message
+      // instead of a blank box so the failure is visible rather than silent.
+      if (typeof L === 'undefined') {
+        mapContainer.innerHTML = '<div style="height:100%;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;text-align:center;color:#6b7684;font-weight:600;padding:24px;line-height:1.5;">지도 라이브러리를 불러오지 못했어요.<br>인터넷 연결을 확인하거나, 이 파일을 브라우저에서 직접 열어 주세요.</div>';
+        return;
+      }
+
+      const regKey = mapRegionFilter ? mapRegionFilter.value : "gyeonggi_hot";
+      const regMapData = realComplexesData[regKey] || realComplexesData["gyeonggi_hot"];
+
+      if (!leafletMapInstance) {
+        leafletMapInstance = L.map('leafletMap').setView(regMapData.center, regMapData.zoom);
+        // CartoDB Voyager tiles — CORS-friendly and more reliable than the raw OSM server.
+        const tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          subdomains: 'abcd',
+          crossOrigin: true,
+          attribution: '&copy; OpenStreetMap &copy; CARTO'
+        });
+        // Fall back to the standard OSM tiles if CartoDB tiles fail to load.
+        let switched = false;
+        tiles.on('tileerror', () => {
+          if (switched) return;
+          switched = true;
+          leafletMapInstance.removeLayer(tiles);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18, attribution: '&copy; OpenStreetMap'
+          }).addTo(leafletMapInstance);
+        });
+        tiles.addTo(leafletMapInstance);
+      } else {
+        leafletMapInstance.setView(regMapData.center, regMapData.zoom);
+      }
+
+      // Leaflet mis-measures the map when the container was hidden or mid-animation
+      // at creation time (tiles don't fill / markers drift). Recalculate size once the
+      // step is actually visible so it always renders correctly.
+      leafletMapInstance.invalidateSize();
+      setTimeout(() => { if (leafletMapInstance) leafletMapInstance.invalidateSize(); }, 120);
+      setTimeout(() => { if (leafletMapInstance) leafletMapInstance.invalidateSize(); }, 420);
+
+      // Clear existing markers
+      mapMarkers.forEach(m => leafletMapInstance.removeLayer(m));
+      mapMarkers = [];
+
+      // Add Real Markers
+      regMapData.complexes.forEach((comp, idx) => {
+        const markerIcon = L.divIcon({
+          className: 'custom-map-marker',
+          html: `<div class="w-10 h-10 rounded-full bg-brand-500 text-white font-black text-sm flex items-center justify-center shadow-lg border-2 border-white transform hover:scale-110 transition-transform cursor-pointer">${comp.code}</div>`,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        });
+
+        const marker = L.marker([comp.lat, comp.lng], { icon: markerIcon }).addTo(leafletMapInstance);
+        marker.bindPopup(`
+          <div class="text-slate-900 font-sans p-1">
+            <b class="text-sm font-black block">${comp.name}</b>
+            <span class="text-xs text-brand-600 font-bold block mt-0.5">예상 경쟁률: ${comp.rate}</span>
+            <span class="text-[11px] text-slate-500 block mt-1">계약 필요 현금: ${comp.cash}</span>
+          </div>
+        `);
+
+        marker.on('click', () => {
+          selectComplex(comp);
+        });
+
+        mapMarkers.push(marker);
+
+        if (idx === 0) {
+          selectComplex(comp);
+        }
+      });
+    }
+
+    function selectComplex(comp) {
+      currentSelectedComplex = comp;
+      propertyName.textContent = comp.name;
+      propertyMeta.textContent = comp.meta;
+      propertyRate.textContent = comp.rate;
+      requiredDeposit.textContent = comp.deposit;
+      contractMoney.textContent = comp.contract;
+      cashBeforeLoan.textContent = comp.cash;
+
+      unitList.innerHTML = `
+        <div class="flex justify-between py-1.5 border-b border-slate-100">
+          <span>타입별 계약금 예시</span>
+          <b class="font-bold text-slate-800">${comp.contract} (10%)</b>
+        </div>
+        <div class="flex justify-between py-1.5 border-b border-slate-100">
+          <span>계약일 전 필요 현금 (계약금+예치금)</span>
+          <b class="font-bold text-brand-600">${comp.cash}</b>
+        </div>
+      `;
+
+      updateBookmarkButton();
+    }
+
+    function toggleBookmarkCurrent() {
+      if (!currentSelectedComplex) return;
+      const existingIdx = bookmarkedComplexes.findIndex(b => b.id === currentSelectedComplex.id);
+      if (existingIdx >= 0) {
+        bookmarkedComplexes.splice(existingIdx, 1);
+        showToast("🗑️ 관심 단지에서 제거되었습니다.");
+      } else {
+        bookmarkedComplexes.push(currentSelectedComplex);
+        showToast("⭐ 관심 단지로 스크랩되었습니다!");
+      }
+      updateBookmarkButton();
+      renderBookmarksList();
+    }
+
+    function updateBookmarkButton() {
+      const btnScrap = document.getElementById("btnScrap");
+      if (!btnScrap || !currentSelectedComplex) return;
+      const isBookmarked = bookmarkedComplexes.some(b => b.id === currentSelectedComplex.id);
+      if (isBookmarked) {
+        btnScrap.className = "w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-base rounded-2xl transition shadow-lg flex items-center justify-center gap-2";
+        btnScrap.innerHTML = "<span>★ 스크랩 완료 (클릭 시 취소)</span>";
+      } else {
+        btnScrap.className = "w-full h-14 bg-brand-500 hover:bg-brand-600 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl transition shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2";
+        btnScrap.innerHTML = "<span>⭐ 이 단지 관심 단지로 스크랩</span>";
+      }
+      const countLabel = document.getElementById("bookmarkCount");
+      if (countLabel) countLabel.textContent = bookmarkedComplexes.length;
+    }
+
+    function renderBookmarksList() {
+      const listEl = document.getElementById("bookmarkList");
+      const countEl = document.getElementById("bookmarkTotalCount");
+      if (!listEl) return;
+
+      if (countEl) countEl.textContent = bookmarkedComplexes.length;
+
+      if (bookmarkedComplexes.length === 0) {
+        listEl.innerHTML = `
+          <div class="p-12 text-center text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+            <span class="text-3xl block mb-2">⭐</span>
+            <p class="font-bold">아직 스크랩한 관심 단지가 없습니다.</p>
+            <p class="text-xs mt-1">'실제 단지 지도' 탭에서 원하는 단지를 스크랩해 보세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = bookmarkedComplexes.map(comp => `
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-lg">${comp.rate} 경쟁률</span>
+            <h4 class="text-lg font-black text-slate-900 mt-2">${comp.name}</h4>
+            <p class="text-xs text-slate-500 mt-0.5">${comp.meta}</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-bold text-slate-400 block mb-0.5">필요 현금 (계약금+예치금)</span>
+            <b class="text-xl font-black text-brand-600 num-display">${comp.cash}</b>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function updateResult() {
+      const laneInfo = recommendLane();
+      const recommended = recommendMonthly(laneInfo.label);
+      const now = Math.max(0, Number(monthly.value || 0));
+      const message = moneyMessage(now, recommended, laneInfo.label);
+      const scores = gajeomScores();
+      const competition = competitionData[region.value];
+      const rounds = paymentRounds();
+
+      lane.textContent = laneInfo.label;
+      laneCopy.textContent = laneInfo.copy;
+      updateInsight(scores, competition, laneInfo);
+
+      const isPublicLane = laneInfo.label.includes("공공");
+
+      heroScoreLabel.textContent = isPublicLane ? "현재 회차" : "예상 가점";
+      heroScore.textContent = isPublicLane ? rounds.current : scores.total;
+      heroScoreUnit.textContent = isPublicLane ? "회" : "/84점";
+      heroCompetition.textContent = competition.level;
+      heroMonthly.textContent = recommended;
+
+      totalScore.textContent = scores.total;
+      homelessScore.textContent = scores.homeless;
+      dependentScore.textContent = scores.dependent;
+      accountScore.textContent = scores.account;
+
+      homelessBar.style.width = `${Math.round(scores.homeless / 32 * 100)}%`;
+      dependentBar.style.width = `${Math.round(scores.dependent / 35 * 100)}%`;
+      accountBar.style.width = `${Math.round(scores.account / 17 * 100)}%`;
+
+      privateScoreCard.classList.toggle("hidden", isPublicLane);
+      publicMetricCard.classList.toggle("hidden", !isPublicLane);
+      publicRoundsNow.textContent = `${rounds.current}회`;
+      publicMonthlyCap.textContent = `${recommended}만원`;
+      publicMetricCopy.textContent = `공공분양은 민영 가점제가 아니라 납입회차와 인정 저축총액이 중요합니다. 여유가 있다면 월 ${recommended}만원 인정 한도에 맞춰 관리하는 쪽이 유리합니다.`;
+
+      competitionRate.textContent = competition.rate;
+      competitionLevel.textContent = competition.level;
+      competitionCopy.textContent = `${competition.copy} · 최근 분양 기준`;
+
+      scoreNeed.textContent = scores.total >= 60
+        ? "현재 가점으로 민영 도전 가능권"
+        : competition.level === "매우 높음"
+          ? "내 가점만으로는 불리, 인근 단지도 함께 비교"
+          : "가점 보완 또는 추첨제 물량 확인 권장";
+
+      currentMonthly.textContent = now;
+      recommendedMonthly.textContent = recommended;
+      currentRounds.textContent = rounds.current;
+      targetRounds.textContent = rounds.target;
+
+      amountAction.textContent = message.action;
+      amountActionDetail.textContent = message.action;
+      amountCopy.textContent = `${message.copy} 공공은 납입회차와 인정금액이 중요하고, 민영은 지역·면적별 예치금과 가점이 더 중요합니다. 현재 추정 회차는 ${rounds.current}회차, 목표 관리 회차는 ${rounds.target}회차입니다.`;
+
+      if (districtList) {
+        districtList.innerHTML = competition.nearby.map(([name, rate]) => `
+          <div class="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <span class="font-bold text-slate-700">${name}</span>
+            <span class="font-black text-brand-600">${rate}</span>
+          </div>
+        `).join("");
+      }
+
+      // Update Summary Cards
+      const summaryAccount = document.getElementById("summaryAccount");
+      const summaryMarital = document.getElementById("summaryMarital");
+      const summaryHome = document.getElementById("summaryHome");
+      const summaryHouseholder = document.getElementById("summaryHouseholder");
+      const summaryRegion = document.getElementById("summaryRegion");
+      const summaryMonthly = document.getElementById("summaryMonthly");
+
+      if (summaryAccount) summaryAccount.textContent = account.value === 'yes' ? `보유 (${accountYears.value}년)` : '미보유';
+      if (summaryMarital) summaryMarital.textContent = marital.value === 'single' ? '미혼' : marital.value === 'planned' ? '결혼 예정' : '기혼';
+      if (summaryHome) summaryHome.textContent = home.value === 'no' ? '무주택' : '유주택/부모소유';
+      if (summaryHouseholder) summaryHouseholder.textContent = householder.value === 'yes' ? '세대주' : '세대원';
+      if (summaryRegion) summaryRegion.textContent = competitionData[region.value]?.name || '경기 과천·분당';
+      if (summaryMonthly) summaryMonthly.textContent = `${now}만원`;
+
+      updateFieldVisibility();
+      syncChips();
+    }
+
+    // Event Listeners Initialization
+    [account, accountYears, marital, spouseYears, home, parentOwnerAge, homelessYears, householder, income, children, dependents, region, period, monthly].forEach((ctrl) => {
+      if (ctrl) {
+        ctrl.addEventListener("input", updateResult);
+        ctrl.addEventListener("change", updateResult);
+      }
+    });
+
+    if (mapRegionFilter) {
+      mapRegionFilter.addEventListener("change", () => {
+        initOrUpdateMap();
+      });
+    }
+
+    // Keep the map correctly sized when the viewport changes.
+    window.addEventListener("resize", () => {
+      if (leafletMapInstance) leafletMapInstance.invalidateSize();
+    });
+
+    if (monthlyMinus) monthlyMinus.addEventListener("click", () => setMonthly(Number(monthly.value || 0) - 1));
+    if (monthlyPlus) monthlyPlus.addEventListener("click", () => setMonthly(Number(monthly.value || 0) + 1));
+    chips.forEach((chip) => chip.addEventListener("click", () => setMonthly(Number(chip.dataset.amount))));
+
+    // Run Initial Calculation
+    updateResult();
+    renderBookmarksList();
+
+  </script>
+
+  <!-- Landing page animation controller -->
+  <script>
+    (function () {
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var revealEls = document.querySelectorAll('.reveal');
+      var countEls = document.querySelectorAll('.count');
+
+      // Count-up helper
+      function runCount(el) {
+        var target = Number(el.getAttribute('data-to')) || 0;
+        if (reduceMotion) { el.textContent = target; return; }
+        var dur = 1100, start = null;
+        function tick(ts) {
+          if (!start) start = ts;
+          var p = Math.min((ts - start) / dur, 1);
+          var eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+          el.textContent = Math.round(target * eased);
+          if (p < 1) requestAnimationFrame(tick);
+          else el.textContent = target;
+        }
+        requestAnimationFrame(tick);
+      }
+
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (entries, obs) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in');
+              if (entry.target.classList.contains('count')) runCount(entry.target);
+              obs.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+        revealEls.forEach(function (el) { io.observe(el); });
+        countEls.forEach(function (el) { io.observe(el); });
+      } else {
+        // Fallback: reveal everything and set final counts
+        revealEls.forEach(function (el) { el.classList.add('in'); });
+        countEls.forEach(function (el) { el.textContent = el.getAttribute('data-to'); });
+      }
+
+      // Kick counts on load too, since the hero stats are visible immediately
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          countEls.forEach(function (el) {
+            var r = el.getBoundingClientRect();
+            if (r.top < window.innerHeight && r.bottom > 0 && el.textContent === '0') runCount(el);
+          });
+        }, 650);
+      });
+    })();
+  </script>
+</body>
+</html>
